@@ -1,7 +1,12 @@
 services:
   mojimili-laravel:
+    restart: always
     ports:
+      - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
       - 80:80
+
+  mojimili-mariadb:
+    restart: always
 
   adminer:
     restart: always
