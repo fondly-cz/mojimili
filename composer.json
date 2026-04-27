@@ -10,7 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "esoul/ares-wrapper": "dev-master",
+        "fondly-cz/ares-connector": "dev-main",
         "inertiajs/inertia-laravel": "^2.0.20",
         "laravel/framework": "^12.31.1",
         "laravel/sanctum": "^4.3.1",
@@ -90,8 +90,8 @@
     "prefer-stable": true,
     "repositories": [
         {
-            "type": "composer",
-            "url": "https://packages.wboy.cz"
+            "type": "vcs",
+            "url": "https://github.com/fondly-cz/ares-connector"
         }
     ]
 }
