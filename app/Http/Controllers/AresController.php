@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Esoul\Ares\Ares;
+use Fondly\Ares\Ares;
 use Exception;
 use Illuminate\Http\Request;
 
