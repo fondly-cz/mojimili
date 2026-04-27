@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
-use Esoul\Ares\Ares;
+use Fondly\Ares\Ares;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
