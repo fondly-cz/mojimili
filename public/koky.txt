@@ -1,4 +1,4 @@
-Esoul\Ares\Model\Subject Object
+Fondly\Ares\Model\Subject Object
 (
     [in] => 88518426
     [tradeName] => Martin Kokeš
@@ -20,7 +20,7 @@ Esoul\Ares\Model\Subject Object
 
     [addresses] => Array
         (
-            [0] => Esoul\Ares\Model\Address Object
+            [0] => Fondly\Ares\Model\Address Object
                 (
                     [stateCode] => CZ
                     [stateName] => Česká republika
@@ -33,7 +33,7 @@ Esoul\Ares\Model\Subject Object
                     [streetCode] => 228991
                     [streetName] => Školní
                     [buildingNumber] => 638
-                    [orientationNumber] => 
+                    [orientationNumber] =>
                     [municipalityPartCode] => 147397
                     [municipalityPartName] => Sendražice
                     [addressPlaceCode] => 85666980
