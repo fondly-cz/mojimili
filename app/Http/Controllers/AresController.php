@@ -44,7 +44,7 @@ class AresController extends Controller
                 'address' => trim($street),
                 'city' => $address ? $address->municipalityName : '',
                 'state' => $address ? $address->districtName : '',
-                'postal_code' => $address ? $address->zipCode : '',
+                'postal_code' => $address && $address->zipCode ? (string) $address->zipCode : '',
                 'country' => $address ? $address->stateName : '',
                 'industry' => '',
             ]);
