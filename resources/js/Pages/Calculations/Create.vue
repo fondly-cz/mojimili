@@ -174,8 +174,8 @@
 
                             <div v-else class="space-y-4">
                                 <!-- N-level Nested Items Display -->
-                                <CalculationItemNode 
-                                    v-for="item in rootItems" 
+                                <CalculationItemNode
+                                    v-for="item in rootItems"
                                     :key="item.unique_id"
                                     :item="item"
                                     :all-items="form.services"
@@ -187,6 +187,8 @@
                                     @clear-drop-target="dropTargetId = null"
                                     @drop-item="handleDrop"
                                     @remove-item="removeService"
+                                    @move-up="moveItemUp"
+                                    @move-down="moveItemDown"
                                 />
                                 </div>
 
@@ -633,6 +635,32 @@ const addService = (service) => {
         days: service.days,
         payment_period: service.payment_period
     })
+}
+
+const moveItemUp = (uniqueId) => {
+    const index = form.services.findIndex(s => s.unique_id === uniqueId)
+    if (index < 1) return
+    const item = form.services[index]
+    for (let i = index - 1; i >= 0; i--) {
+        if (form.services[i].parent_id === item.parent_id) {
+            form.services.splice(index, 1)
+            form.services.splice(i, 0, item)
+            return
+        }
+    }
+}
+
+const moveItemDown = (uniqueId) => {
+    const index = form.services.findIndex(s => s.unique_id === uniqueId)
+    if (index === -1) return
+    const item = form.services[index]
+    for (let i = index + 1; i < form.services.length; i++) {
+        if (form.services[i].parent_id === item.parent_id) {
+            form.services.splice(index, 1)
+            form.services.splice(i, 0, item)
+            return
+        }
+    }
 }
 
 const removeService = (idToRemove) => {

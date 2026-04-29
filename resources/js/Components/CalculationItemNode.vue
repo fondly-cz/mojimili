@@ -14,8 +14,32 @@
             <span class="text-xs font-bold">×</span>
         </button>
 
-        <div class="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-white transition-colors">
-            {{ item.icon }}
+        <div class="flex flex-col items-center gap-1 shrink-0">
+            <button
+                type="button"
+                @click.stop="moveUp(item.unique_id)"
+                :disabled="isFirstSibling"
+                class="h-6 w-6 rounded-lg bg-gray-50 text-gray-400 hover:bg-brand-primary-from/10 hover:text-brand-primary-from transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:hover:text-gray-400"
+                title="Posunout nahoru"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+                </svg>
+            </button>
+            <div class="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-xl shadow-sm group-hover:bg-white transition-colors">
+                {{ item.icon }}
+            </div>
+            <button
+                type="button"
+                @click.stop="moveDown(item.unique_id)"
+                :disabled="isLastSibling"
+                class="h-6 w-6 rounded-lg bg-gray-50 text-gray-400 hover:bg-brand-primary-from/10 hover:text-brand-primary-from transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:hover:text-gray-400"
+                title="Posunout dolů"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
         </div>
         
         <div class="grow">
@@ -55,8 +79,8 @@
 
             <!-- Children -> recursive mapping -->
             <div v-if="children.length > 0" class="mt-4 pt-4 border-t-2 border-dashed border-gray-50 pl-4 border-l-2">
-                <CalculationItemNode 
-                    v-for="child in children" 
+                <CalculationItemNode
+                    v-for="child in children"
                     :key="child.unique_id"
                     :item="child"
                     :all-items="allItems"
@@ -68,6 +92,8 @@
                     @clear-drop-target="$emit('clear-drop-target', $event)"
                     @drop-item="$emit('drop-item', $event)"
                     @remove-item="$emit('remove-item', $event)"
+                    @move-up="$emit('move-up', $event)"
+                    @move-down="$emit('move-down', $event)"
                 />
             </div>
         </div>
@@ -91,11 +117,31 @@ const props = defineProps({
     showVat: Boolean
 })
 
-const emit = defineEmits(['drag-start', 'set-drop-target', 'clear-drop-target', 'drop-item', 'remove-item'])
+const emit = defineEmits(['drag-start', 'set-drop-target', 'clear-drop-target', 'drop-item', 'remove-item', 'move-up', 'move-down'])
 
 const children = computed(() => {
     return props.allItems.filter(i => i.parent_id === props.item.unique_id)
 })
+
+const siblings = computed(() => {
+    return props.allItems.filter(i => i.parent_id === props.item.parent_id)
+})
+
+const isFirstSibling = computed(() => {
+    return siblings.value[0]?.unique_id === props.item.unique_id
+})
+
+const isLastSibling = computed(() => {
+    return siblings.value[siblings.value.length - 1]?.unique_id === props.item.unique_id
+})
+
+const moveUp = (id) => {
+    emit('move-up', id)
+}
+
+const moveDown = (id) => {
+    emit('move-down', id)
+}
 
 const handleDragStart = (e, id) => {
     emit('drag-start', { event: e, id })

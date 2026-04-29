@@ -1,10 +1,72 @@
 <template>
     <Layout>
         <div class="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-12">
-            <div class="hero text-center py-12 mb-8 brand-gradient rounded-[2.5rem] text-white shadow-brand-lg">
-                <h1 class="text-4xl font-black tracking-tight sm:text-5xl font-heading uppercase">Úprava kalkulace</h1>
-                <p class="mt-4 text-xl opacity-90 font-medium italic">Upravte detaily projektu #{{ calculation.id }}</p>
+            <div class="hero relative py-12 mb-8 brand-gradient rounded-[2.5rem] text-white shadow-brand-lg">
+                <div class="absolute top-6 right-6 flex gap-2">
+                    <a
+                        :href="calculation.public_url"
+                        target="_blank"
+                        class="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-brand-primary-from hover:shadow-sm transition-all border border-white/10"
+                        title="Otevřít veřejný odkaz"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                    <button
+                        @click="copyPublicUrl"
+                        class="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-brand-primary-from hover:shadow-sm transition-all border border-white/10"
+                        :title="copied ? 'Zkopírováno!' : 'Kopírovat veřejný odkaz'"
+                    >
+                        <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
+                    <Link
+                        :href="`/calculations/${calculation.id}/edit`"
+                        class="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-brand-primary-from hover:shadow-sm transition-all border border-white/10"
+                        title="Upravit kalkulaci"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </Link>
+                    <Link
+                        :href="`/calculations/${calculation.id}`"
+                        class="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-brand-primary-to hover:shadow-sm transition-all border border-white/10"
+                        title="Zobrazit detail"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </Link>
+                    <button
+                        @click="confirmDeleteOpen = true"
+                        class="p-2.5 bg-white/10 text-white rounded-xl hover:bg-white hover:text-red-500 hover:shadow-sm transition-all border border-white/10"
+                        title="Smazat"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="text-center">
+                    <h1 class="text-4xl font-black tracking-tight sm:text-5xl font-heading uppercase">Úprava kalkulace</h1>
+                    <p class="mt-4 text-xl opacity-90 font-medium italic">Upravte detaily projektu #{{ calculation.id }}</p>
+                </div>
             </div>
+
+            <ConfirmModal
+                :show="confirmDeleteOpen"
+                title="Smazat kalkulaci"
+                :message="`Opravdu chcete smazat kalkulaci pro &quot;${calculation.customer_name}&quot;?`"
+                @close="confirmDeleteOpen = false"
+                @confirm="executeDelete"
+            />
 
             <div class="lg:grid lg:grid-cols-12 lg:gap-x-12 2xl:gap-x-20 lg:items-start relative">
 
@@ -174,8 +236,8 @@
 
                             <div v-else class="space-y-4">
                                 <!-- N-level Nested Items Display -->
-                                <CalculationItemNode 
-                                    v-for="item in rootItems" 
+                                <CalculationItemNode
+                                    v-for="item in rootItems"
                                     :key="item.unique_id"
                                     :item="item"
                                     :all-items="form.services"
@@ -187,6 +249,8 @@
                                     @clear-drop-target="dropTargetId = null"
                                     @drop-item="handleDrop"
                                     @remove-item="removeService"
+                                    @move-up="moveItemUp"
+                                    @move-down="moveItemDown"
                                 />
                                 </div>
 
@@ -391,10 +455,11 @@
 
 <script setup>
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { useForm, usePage, Link, router } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
 import CalculationItemNode from '../../Components/CalculationItemNode.vue'
 import RichEditor from '../../Components/RichEditor.vue'
+import ConfirmModal from '../../Components/ConfirmModal.vue'
 import debounce from 'lodash/debounce'
 
 const props = defineProps({
@@ -406,6 +471,31 @@ const isCatalogOpen = ref(true)
 const searchQuery = ref('')
 const perPage = ref(20)
 const currentPage = ref(1)
+const confirmDeleteOpen = ref(false)
+const copied = ref(false)
+
+const executeDelete = () => {
+    router.delete(`/calculations/${props.calculation.id}`, {
+        onSuccess: () => confirmDeleteOpen.value = false
+    })
+}
+
+const copyPublicUrl = async () => {
+    try {
+        await navigator.clipboard.writeText(props.calculation.public_url)
+        copied.value = true
+        setTimeout(() => copied.value = false, 2000)
+    } catch (e) {
+        const ta = document.createElement('textarea')
+        ta.value = props.calculation.public_url
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        copied.value = true
+        setTimeout(() => copied.value = false, 2000)
+    }
+}
 
 const filteredServices = computed(() => {
     let result = props.services
@@ -657,6 +747,32 @@ const addService = (service) => {
         days: service.days,
         payment_period: service.payment_period
     })
+}
+
+const moveItemUp = (uniqueId) => {
+    const index = form.services.findIndex(s => s.unique_id === uniqueId)
+    if (index < 1) return
+    const item = form.services[index]
+    for (let i = index - 1; i >= 0; i--) {
+        if (form.services[i].parent_id === item.parent_id) {
+            form.services.splice(index, 1)
+            form.services.splice(i, 0, item)
+            return
+        }
+    }
+}
+
+const moveItemDown = (uniqueId) => {
+    const index = form.services.findIndex(s => s.unique_id === uniqueId)
+    if (index === -1) return
+    const item = form.services[index]
+    for (let i = index + 1; i < form.services.length; i++) {
+        if (form.services[i].parent_id === item.parent_id) {
+            form.services.splice(index, 1)
+            form.services.splice(i, 0, item)
+            return
+        }
+    }
 }
 
 const removeService = (idToRemove) => {

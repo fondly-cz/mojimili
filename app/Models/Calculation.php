@@ -30,7 +30,7 @@ class Calculation extends Model
 
     public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(CalculationItem::class);
+        return $this->hasMany(CalculationItem::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo

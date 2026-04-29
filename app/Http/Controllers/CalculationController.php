@@ -80,7 +80,7 @@ class CalculationController extends Controller
         $createdItems = [];
 
         // Save items first (flat)
-        foreach ($validated['services'] as $itemData) {
+        foreach ($validated['services'] as $index => $itemData) {
             $service = $services->firstWhere('id', $itemData['id']);
             if (! $service) {
                 continue;
@@ -97,6 +97,7 @@ class CalculationController extends Controller
                 'payment_period' => $itemData['payment_period'],
                 'is_accepted' => false,
                 'is_required' => $itemData['is_required'] ?? false,
+                'sort_order' => $index,
             ]);
 
             $createdItems[$itemData['unique_id']] = $item;
@@ -216,7 +217,7 @@ class CalculationController extends Controller
         $services = Service::whereIn('id', collect($validated['services'])->pluck('id'))->get();
         $createdItems = [];
 
-        foreach ($validated['services'] as $itemData) {
+        foreach ($validated['services'] as $index => $itemData) {
             $service = $services->firstWhere('id', $itemData['id']);
             if (! $service) {
                 continue;
@@ -233,6 +234,7 @@ class CalculationController extends Controller
                 'payment_period' => $itemData['payment_period'],
                 'is_accepted' => false,
                 'is_required' => $itemData['is_required'] ?? false,
+                'sort_order' => $index,
             ]);
 
             $createdItems[$itemData['unique_id']] = $item;
