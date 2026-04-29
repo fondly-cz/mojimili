@@ -52,7 +52,6 @@ class CompanyController extends Controller
         } catch (Exception $e) {
             return Inertia::render('Companies/Create');
         }
-        file_put_contents('koky.txt', print_r($koky, true));
 
         return Inertia::render('Companies/Create');
     }
