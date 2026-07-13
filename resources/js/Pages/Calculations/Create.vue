@@ -1,9 +1,15 @@
 <template>
     <Layout>
         <div class="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-12">
-            <div class="hero text-center py-12 mb-8 brand-gradient rounded-[2.5rem] text-white shadow-brand-lg">
-                <h1 class="text-4xl font-black tracking-tight sm:text-5xl font-heading uppercase">Tvorba nové kalkulace</h1>
-                <p class="mt-4 text-xl opacity-90 font-medium italic">Sestavte projekt na míru z našich služeb</p>
+            <Breadcrumbs
+                :items="[
+                    { label: 'Nástěnka', href: '/' },
+                    { label: 'Kalkulace', href: '/calculations' },
+                ]"
+            />
+            <div class="mb-10">
+                <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">Tvorba nové kalkulace</h1>
+                <p class="text-gray-500 mt-2 font-medium">Sestavte projekt na míru z našich služeb</p>
             </div>
 
             <div class="lg:grid lg:grid-cols-12 lg:gap-x-12 2xl:gap-x-20 lg:items-start relative">
@@ -393,6 +399,7 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
+import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import CalculationItemNode from '../../Components/CalculationItemNode.vue'
 import RichEditor from '../../Components/RichEditor.vue'
 import debounce from 'lodash/debounce'

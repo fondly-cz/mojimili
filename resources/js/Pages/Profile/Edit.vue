@@ -1,5 +1,6 @@
 <script setup>
 import Layout from '@/Components/Layout.vue';
+import Breadcrumbs from '@/Components/Breadcrumbs.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
@@ -19,6 +20,7 @@ defineProps({
     <Head title="Profil" />
 
     <Layout>
+        <Breadcrumbs :items="[{ label: 'Nástěnka', href: '/' }]" />
         <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">Nastavení profilu</h1>

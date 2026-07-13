@@ -1,5 +1,11 @@
 <template>
     <Layout>
+        <Breadcrumbs
+            :items="[
+                { label: 'Nástěnka', href: '/' },
+                { label: 'Firmy', href: '/companies' },
+            ]"
+        />
         <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="flex items-center gap-6">
                 <div class="h-20 w-20 brand-gradient rounded-[2rem] flex items-center justify-center text-white text-3xl font-black shadow-brand border-4 border-white">
@@ -215,6 +221,7 @@
 import { computed, ref } from 'vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
+import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 
 const props = defineProps({
     company: Object,

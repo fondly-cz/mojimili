@@ -1,27 +1,50 @@
 <template>
     <Layout :hideNav="is_public">
-        <div class="max-w-4xl mx-auto px-0 sm:px-6 lg:px-8 py-12">
-            <div class="mb-8 flex justify-between items-center">
-                <Link v-if="!is_public" href="/calculations" class="text-gray-500 hover:text-brand-primary-from flex items-center gap-2 font-bold font-heading transition-colors">
-                    <span class="text-xl">←</span> Zpět na seznam
-                </Link>
-                <div v-else class="flex items-center gap-3">
-                    <img src="/logo.svg" alt="MojiMili Logo" class="h-10 w-auto" />
-                    <span class="text-xl font-extrabold brand-text-gradient font-heading">MojiMili</span>
+        <template v-if="!is_public">
+            <Breadcrumbs
+                :items="[
+                    { label: 'Nástěnka', href: '/' },
+                    { label: 'Kalkulace', href: '/calculations' },
+                ]"
+            />
+            <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
+                <div>
+                    <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">
+                        Cenová nabídka <span class="text-gray-300">#{{ calculation.id.toString().padStart(6, '0') }}</span>
+                    </h1>
+                    <p class="text-gray-500 mt-2 font-medium">
+                        {{ calculation.customer_name }}<template v-if="calculation.customer_company"> — {{ calculation.customer_company }}</template>
+                    </p>
                 </div>
-
-                <div class="flex gap-4">
+                <div class="flex items-center gap-3 flex-wrap">
                     <div v-if="calculation.status === 'confirmed'" class="px-5 py-2.5 bg-green-50 text-green-600 rounded-full flex items-center gap-2 font-bold text-sm border border-green-100 shadow-sm animate-pulse-slow">
                         <span>✓ Nabídka potvrzena</span>
                     </div>
                     <button @click="print" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-gray-700 bg-white hover:bg-gray-50 transition-all font-heading">
                         🖨️ PDF / Tisk
                     </button>
-                    <Link v-if="!is_public" :href="`/calculations/${calculation.id}/edit`" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-brand-primary-from bg-white hover:bg-gray-50 transition-all font-heading">
+                    <Link :href="`/calculations/${calculation.id}/edit`" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-brand-primary-from bg-white hover:bg-gray-50 transition-all font-heading">
                         ✏️ Upravit
                     </Link>
-                    <button v-if="!is_public" @click="shareEmail" class="inline-flex items-center px-6 py-3 brand-gradient text-sm font-bold rounded-full shadow-brand text-white hover:shadow-brand-lg transition-all hover:-translate-y-0.5 font-heading">
+                    <button @click="shareEmail" class="inline-flex items-center px-6 py-3 brand-gradient text-sm font-bold rounded-full shadow-brand text-white hover:shadow-brand-lg transition-all hover:-translate-y-0.5 font-heading">
                         ✉️ Poslat klientovi
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <div :class="is_public ? 'max-w-4xl mx-auto px-0 sm:px-6 lg:px-8 py-12' : 'max-w-4xl mx-auto'">
+            <div v-if="is_public" class="mb-8 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <img src="/logo.svg" alt="MojiMili Logo" class="h-10 w-auto" />
+                    <span class="text-xl font-extrabold brand-text-gradient font-heading">MojiMili</span>
+                </div>
+                <div class="flex gap-4">
+                    <div v-if="calculation.status === 'confirmed'" class="px-5 py-2.5 bg-green-50 text-green-600 rounded-full flex items-center gap-2 font-bold text-sm border border-green-100 shadow-sm animate-pulse-slow">
+                        <span>✓ Nabídka potvrzena</span>
+                    </div>
+                    <button @click="print" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-gray-700 bg-white hover:bg-gray-50 transition-all font-heading">
+                        🖨️ PDF / Tisk
                     </button>
                 </div>
             </div>
@@ -34,7 +57,7 @@
                 </div>
                 <div class="brand-gradient px-10 py-12 text-white flex justify-between items-end">
                     <div>
-                        <h1 class="text-4xl font-extrabold font-heading">Cenová nabídka</h1>
+                        <h2 class="text-4xl font-extrabold font-heading">Cenová nabídka</h2>
                         <p class="text-white/70 mt-1 font-medium italic">Referenční číslo: #{{ calculation.id.toString().padStart(6, '0') }}</p>
                     </div>
                 </div>
@@ -173,6 +196,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import Layout from '../../Components/Layout.vue'
+import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import CalculationItemDisplay from '../../Components/CalculationItemDisplay.vue'
 
 const props = defineProps({

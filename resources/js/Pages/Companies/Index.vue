@@ -1,5 +1,6 @@
 <template>
     <Layout>
+        <Breadcrumbs :items="[{ label: 'Nástěnka', href: '/' }]" />
         <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">Správa firem</h1>
@@ -252,6 +253,7 @@
 import { reactive, ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
+import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 
 const props = defineProps({

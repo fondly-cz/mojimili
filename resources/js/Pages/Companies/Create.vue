@@ -1,5 +1,11 @@
 <template>
     <Layout>
+        <Breadcrumbs
+            :items="[
+                { label: 'Nástěnka', href: '/' },
+                { label: 'Firmy', href: '/companies' },
+            ]"
+        />
         <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">Přidat firmu</h1>
@@ -244,6 +250,7 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
+import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import axios from 'axios'
 
 const form = useForm({

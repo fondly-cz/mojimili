@@ -1,6 +1,7 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3'
 import Layout from '@/Components/Layout.vue'
+import Breadcrumbs from '@/Components/Breadcrumbs.vue'
 import axios from 'axios'
 import { ref } from 'vue'
 
@@ -57,6 +58,7 @@ const submit = () => {
     <Head title="Moje firma" />
 
     <Layout>
+        <Breadcrumbs :items="[{ label: 'Nástěnka', href: '/' }]" />
         <div class="mb-10">
             <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">Moje firma</h1>
             <p class="text-gray-500 mt-2 font-medium">Informace o vaší firmě pro použití v kalkulacích a fakturách.</p>
