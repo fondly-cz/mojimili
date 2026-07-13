@@ -85,6 +85,54 @@ Build assets for production:
 pnpm run build
 ```
 
+## MCP Server (Claude Desktop)
+
+The CRM exposes an [MCP](https://modelcontextprotocol.io) server at `POST /mcp`, so Claude can browse
+the service catalog and build customer calculations for you. It is protected by OAuth 2.1 (Laravel
+Passport): you connect with your own CRM account and Claude gets exactly the permissions that account
+has in the UI — service management stays admin-only, and users without a role are rejected.
+
+### Connecting
+
+1. In Claude Desktop go to **Settings → Connectors → Add custom connector**.
+2. Enter the URL `https://<your-domain>/mcp` (locally `http://localhost:8000/mcp`).
+3. Claude registers itself, sends you to the CRM login and shows an approval screen. Approve it, and
+   the tools become available in your conversations.
+
+Access tokens are valid for 30 days, refresh tokens for 60.
+
+### Available tools
+
+| Tool | Who can use it | What it does |
+| --- | --- | --- |
+| `list-services` | any CRM role | Service catalog with IDs, prices and payment periods |
+| `create-service` | admin | Adds a service to the catalog |
+| `update-service` | admin | Updates an existing service |
+| `list-companies` | any CRM role | Companies and their contacts (for `company_id`) |
+| `list-calculations` | any CRM role | Lists calculations |
+| `get-calculation` | any CRM role | Calculation detail including items |
+| `create-calculation` | any CRM role | Creates a calculation and returns the public customer URL |
+
+### Using it
+
+Just ask in plain language — Claude looks up the service IDs itself and never invents them:
+
+> Add a "Webhosting" service, category Hosting, cost 100 CZK, margin 30 %, billed monthly.
+
+> Create a calculation for Jan Novák (jan@example.com, +420 777 123 456): a custom website with
+> webhosting nested underneath it, and send me the public link.
+
+Items can be nested (give an item a `key` and set the child's `parent_key` to it). Anything you leave
+out — price, days, payment period, description — falls back to the service catalog.
+
+### Deployment
+
+`php artisan migrate` and, on the first deploy only, `php artisan passport:keys`. The keys in
+`storage/` are gitignored and **must survive deploys**, otherwise every connected client is
+disconnected. `APP_URL` must be the production HTTPS domain, as it doubles as the OAuth issuer.
+
+See [docs/mcp.md](docs/mcp.md) for the full details.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
