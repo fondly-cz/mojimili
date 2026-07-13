@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
 {
@@ -49,7 +50,10 @@ class Company extends Model
         return $query->where('status', 'prospect');
     }
 
-    public function employees()
+    /**
+     * @return HasMany<CompanyEmployee, $this>
+     */
+    public function employees(): HasMany
     {
         return $this->hasMany(CompanyEmployee::class);
     }
