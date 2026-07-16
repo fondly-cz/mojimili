@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Passport\Contracts\OAuthenticatable;
+use Laravel\Passport\HasApiTokens;
 
 /**
- * @property \App\Enums\UserRole|null $role
+ * @property UserRole|null $role
  */
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    /** @use HasFactory<UserFactory> */
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -33,17 +37,17 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isAdmin(): bool
     {
-        return $this->role === \App\Enums\UserRole::ADMIN;
+        return $this->role === UserRole::ADMIN;
     }
 
     public function isManager(): bool
     {
-        return $this->role === \App\Enums\UserRole::MANAGER;
+        return $this->role === UserRole::MANAGER;
     }
 
     public function hasAnyRole(): bool
     {
-        return $this->role !== null && in_array($this->role, \App\Enums\UserRole::cases(), true);
+        return $this->role !== null && in_array($this->role, UserRole::cases(), true);
     }
 
     /**
@@ -66,7 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => \App\Enums\UserRole::class,
+            'role' => UserRole::class,
         ];
     }
 }

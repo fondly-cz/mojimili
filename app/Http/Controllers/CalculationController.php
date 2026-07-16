@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SaveCalculation;
 use App\Models\Calculation;
+use App\Models\CalculationItem;
 use App\Models\Service;
 use Illuminate\Http\Request;
 
@@ -38,7 +40,7 @@ class CalculationController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, SaveCalculation $saveCalculation)
     {
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
@@ -61,58 +63,9 @@ class CalculationController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $calculation = Calculation::create([
-            'customer_name' => $validated['customer_name'],
-            'customer_email' => $validated['customer_email'],
-            'customer_phone' => $validated['customer_phone'],
-            'customer_company' => $validated['customer_company'],
-            'company_id' => $validated['company_id'] ?? null,
-            'company_employee_id' => $validated['company_employee_id'] ?? null,
-            'description' => $validated['description'] ?? null,
-            'note' => $validated['note'],
-            'show_vat' => $request->boolean('show_vat'),
-            'user_id' => auth()->id(),
-            'total_price' => 0,
-            'total_days' => 0,
-        ]);
+        $validated['show_vat'] = $request->boolean('show_vat');
 
-        $services = Service::whereIn('id', collect($validated['services'])->pluck('id'))->get();
-        $createdItems = [];
-
-        // Save items first (flat)
-        foreach ($validated['services'] as $index => $itemData) {
-            $service = $services->firstWhere('id', $itemData['id']);
-            if (! $service) {
-                continue;
-            }
-
-            $item = $calculation->items()->create([
-                'service_id' => $service->id,
-                'name' => $service->name,
-                'description' => $itemData['description'] ?? $service->description,
-                'cost' => 0, // Costs are now individual per calculation
-                'margin' => 0,
-                'price' => $itemData['price'],
-                'days' => $itemData['days'],
-                'payment_period' => $itemData['payment_period'],
-                'is_accepted' => false,
-                'is_required' => $itemData['is_required'] ?? false,
-                'sort_order' => $index,
-            ]);
-
-            $createdItems[$itemData['unique_id']] = $item;
-        }
-
-        // Apply hierarchy based on parent_id
-        foreach ($validated['services'] as $itemData) {
-            if (! empty($itemData['parent_id']) && isset($createdItems[$itemData['parent_id']])) {
-                /** @var \App\Models\CalculationItem $item */
-                $item = $createdItems[$itemData['unique_id']];
-                /** @var \App\Models\CalculationItem $parentItem */
-                $parentItem = $createdItems[$itemData['parent_id']];
-                $item->update(['parent_id' => $parentItem->id]);
-            }
-        }
+        $calculation = $saveCalculation->create($validated, auth()->id());
 
         return redirect()->route('calculations.show', $calculation);
     }
@@ -149,7 +102,7 @@ class CalculationController extends Controller
         $totalDays = 0;
 
         foreach ($calculation->items as $item) {
-            /** @var \App\Models\CalculationItem $item */
+            /** @var CalculationItem $item */
             $isAccepted = $acceptedIds->contains($item->id);
             $item->update(['is_accepted' => $isAccepted]);
 
@@ -176,7 +129,7 @@ class CalculationController extends Controller
         ]);
     }
 
-    public function update(Request $request, Calculation $calculation)
+    public function update(Request $request, Calculation $calculation, SaveCalculation $saveCalculation)
     {
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
@@ -199,56 +152,9 @@ class CalculationController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $calculation->update([
-            'customer_name' => $validated['customer_name'],
-            'customer_email' => $validated['customer_email'],
-            'customer_phone' => $validated['customer_phone'],
-            'customer_company' => $validated['customer_company'],
-            'company_id' => $validated['company_id'] ?? null,
-            'company_employee_id' => $validated['company_employee_id'] ?? null,
-            'description' => $validated['description'] ?? null,
-            'note' => $validated['note'],
-            'show_vat' => $request->boolean('show_vat'),
-        ]);
+        $validated['show_vat'] = $request->boolean('show_vat');
 
-        // Delete old items and recreate
-        $calculation->items()->delete();
-
-        $services = Service::whereIn('id', collect($validated['services'])->pluck('id'))->get();
-        $createdItems = [];
-
-        foreach ($validated['services'] as $index => $itemData) {
-            $service = $services->firstWhere('id', $itemData['id']);
-            if (! $service) {
-                continue;
-            }
-
-            $item = $calculation->items()->create([
-                'service_id' => $service->id,
-                'name' => $service->name,
-                'description' => $itemData['description'] ?? $service->description,
-                'cost' => 0,
-                'margin' => 0,
-                'price' => $itemData['price'],
-                'days' => $itemData['days'],
-                'payment_period' => $itemData['payment_period'],
-                'is_accepted' => false,
-                'is_required' => $itemData['is_required'] ?? false,
-                'sort_order' => $index,
-            ]);
-
-            $createdItems[$itemData['unique_id']] = $item;
-        }
-
-        foreach ($validated['services'] as $itemData) {
-            if (! empty($itemData['parent_id']) && isset($createdItems[$itemData['parent_id']])) {
-                /** @var \App\Models\CalculationItem $item */
-                $item = $createdItems[$itemData['unique_id']];
-                /** @var \App\Models\CalculationItem $parentItem */
-                $parentItem = $createdItems[$itemData['parent_id']];
-                $item->update(['parent_id' => $parentItem->id]);
-            }
-        }
+        $saveCalculation->update($calculation, $validated);
 
         return redirect()->route('calculations.show', $calculation)->with('success', 'Kalkulace byla úspěšně upravena.');
     }

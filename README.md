@@ -85,6 +85,108 @@ Build assets for production:
 pnpm run build
 ```
 
+## Deployment (Portainer + Traefik)
+
+Production runs from **`compose.prod.yml`** + **`docker/prod/Dockerfile`**. The image bakes in
+everything (composer without dev dependencies, built Vite assets) and runs under supervisord —
+web (`artisan serve`), queue worker and scheduler. It does not depend on `vendor/` being committed,
+so Portainer can build it straight from GitHub.
+
+The stack is two services: the app (behind Traefik) and MariaDB (internal network only).
+
+**Steps:**
+
+1. Generate the app key locally:
+   ```bash
+   php artisan key:generate --show
+   ```
+2. Create a **GitHub personal access token** (read-only, access to the `fondly-cz` org). `composer.json`
+   depends on the private repo `fondly-cz/ares-connector`, so the build fails with a 404 without it.
+   Thanks to the multi-stage build the token stays in the intermediate stage and is **not** present in
+   the final image (verify with `docker history`).
+3. In Portainer: **Stacks → Add stack → Repository**
+   - Repository URL: this GitHub repo
+   - Reference: `refs/heads/main`
+   - **Compose path:** `compose.prod.yml`
+   - Enable **Automatic updates** (webhook) if you want a redeploy on push.
+4. Under **Environment variables** fill in the values from
+   [`.env.production.example`](.env.production.example) — required: `APP_KEY`, `DOMAIN_NAME`, `DB_*`,
+   `GITHUB_TOKEN`, `NETWORK_NAME`, `CERT_RESOLVER`; then SMTP, Google OAuth and the first admin as needed.
+5. **Deploy the stack.** Portainer builds the image, starts MariaDB, waits for it, then runs
+   `migrate --force`, seeds the service catalog (first deploy only), generates the Passport keys,
+   creates the admin, runs `optimize` and starts the app.
+
+**First admin:** set `ADMIN_EMAIL` + `ADMIN_PASSWORD` (and optionally `ADMIN_NAME`). The user is only
+created if that e-mail does not exist yet, so it is safe to leave the variables in place. Note that
+`php artisan db:seed` (the full `DatabaseSeeder`) **cannot** run in production — it uses factories,
+i.e. `fakerphp/faker`, which is a dev dependency and is not in the image. Only `ServiceSeeder` (the
+service catalog, run once on an empty database) is used.
+
+> Migrations run on every container start. TLS is handled by Traefik (`CERT_RESOLVER`). Persistent
+> data lives in two volumes: `mojimili-db` (database) and `mojimili-storage` (uploads, logs and the
+> Passport OAuth keys — these **must** survive deploys, otherwise every connected MCP client is
+> disconnected).
+
+Local smoke test of the production image:
+
+```bash
+docker build -f docker/prod/Dockerfile \
+  --secret id=composer_auth,src=$HOME/.composer/auth.json \
+  -t mojimili-crm:test .
+```
+
+(`docker-compose.yml` + `compose.local.yml` are the Sail-based setup used for local development.)
+
+## MCP Server (Claude Desktop)
+
+The CRM exposes an [MCP](https://modelcontextprotocol.io) server at `POST /mcp`, so Claude can browse
+the service catalog and build customer calculations for you. It is protected by OAuth 2.1 (Laravel
+Passport): you connect with your own CRM account and Claude gets exactly the permissions that account
+has in the UI — service management stays admin-only, and users without a role are rejected.
+
+### Connecting
+
+1. In Claude Desktop go to **Settings → Connectors → Add custom connector**.
+2. Enter the URL `https://<your-domain>/mcp` (locally `http://localhost:8000/mcp`).
+3. Claude registers itself, sends you to the CRM login and shows an approval screen. Approve it, and
+   the tools become available in your conversations.
+
+Access tokens are valid for 30 days, refresh tokens for 60.
+
+### Available tools
+
+| Tool | Who can use it | What it does |
+| --- | --- | --- |
+| `list-services` | any CRM role | Service catalog with IDs, prices and payment periods |
+| `create-service` | admin | Adds a service to the catalog |
+| `update-service` | admin | Updates an existing service |
+| `list-companies` | any CRM role | Companies and their contacts (for `company_id`) |
+| `list-calculations` | any CRM role | Lists calculations |
+| `get-calculation` | any CRM role | Calculation detail including items |
+| `create-calculation` | any CRM role | Creates a calculation and returns the public customer URL |
+
+### Using it
+
+Just ask in plain language — Claude looks up the service IDs itself and never invents them:
+
+> Add a "Webhosting" service, category Hosting, cost 100 CZK, margin 30 %, billed monthly.
+
+> Create a calculation for Jan Novák (jan@example.com, +420 777 123 456): a custom website with
+> webhosting nested underneath it, and send me the public link.
+
+Items can be nested (give an item a `key` and set the child's `parent_key` to it). Anything you leave
+out — price, days, payment period, description — falls back to the service catalog.
+
+### Deployment
+
+The [Portainer + Traefik stack](#deployment-portainer--traefik) handles this for you: it runs
+`php artisan migrate` on every start and `php artisan passport:keys` once, storing the keys on the
+`mojimili-storage` volume. The keys are gitignored and **must survive deploys**, otherwise every
+connected client is disconnected. `APP_URL` must be the production HTTPS domain (`compose.prod.yml`
+derives it from `DOMAIN_NAME`), as it doubles as the OAuth issuer.
+
+See [docs/mcp.md](docs/mcp.md) for the full details.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

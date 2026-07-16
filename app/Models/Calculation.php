@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Calculation extends Model
@@ -28,12 +30,18 @@ class Calculation extends Model
         return url('/c/'.$this->access_token);
     }
 
-    public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
+    /**
+     * @return HasMany<CalculationItem, $this>
+     */
+    public function items(): HasMany
     {
         return $this->hasMany(CalculationItem::class)->orderBy('sort_order')->orderBy('id');
     }
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
