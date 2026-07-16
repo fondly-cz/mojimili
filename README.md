@@ -85,6 +85,58 @@ Build assets for production:
 pnpm run build
 ```
 
+## Deployment (Portainer + Traefik)
+
+Production runs from **`compose.prod.yml`** + **`docker/prod/Dockerfile`**. The image bakes in
+everything (composer without dev dependencies, built Vite assets) and runs under supervisord —
+web (`artisan serve`), queue worker and scheduler. It does not depend on `vendor/` being committed,
+so Portainer can build it straight from GitHub.
+
+The stack is two services: the app (behind Traefik) and MariaDB (internal network only).
+
+**Steps:**
+
+1. Generate the app key locally:
+   ```bash
+   php artisan key:generate --show
+   ```
+2. Create a **GitHub personal access token** (read-only, access to the `fondly-cz` org). `composer.json`
+   depends on the private repo `fondly-cz/ares-connector`, so the build fails with a 404 without it.
+   Thanks to the multi-stage build the token stays in the intermediate stage and is **not** present in
+   the final image (verify with `docker history`).
+3. In Portainer: **Stacks → Add stack → Repository**
+   - Repository URL: this GitHub repo
+   - Reference: `refs/heads/main`
+   - **Compose path:** `compose.prod.yml`
+   - Enable **Automatic updates** (webhook) if you want a redeploy on push.
+4. Under **Environment variables** fill in the values from
+   [`.env.production.example`](.env.production.example) — required: `APP_KEY`, `DOMAIN_NAME`, `DB_*`,
+   `GITHUB_TOKEN`, `NETWORK_NAME`, `CERT_RESOLVER`; then SMTP, Google OAuth and the first admin as needed.
+5. **Deploy the stack.** Portainer builds the image, starts MariaDB, waits for it, then runs
+   `migrate --force`, seeds the service catalog (first deploy only), generates the Passport keys,
+   creates the admin, runs `optimize` and starts the app.
+
+**First admin:** set `ADMIN_EMAIL` + `ADMIN_PASSWORD` (and optionally `ADMIN_NAME`). The user is only
+created if that e-mail does not exist yet, so it is safe to leave the variables in place. Note that
+`php artisan db:seed` (the full `DatabaseSeeder`) **cannot** run in production — it uses factories,
+i.e. `fakerphp/faker`, which is a dev dependency and is not in the image. Only `ServiceSeeder` (the
+service catalog, run once on an empty database) is used.
+
+> Migrations run on every container start. TLS is handled by Traefik (`CERT_RESOLVER`). Persistent
+> data lives in two volumes: `mojimili-db` (database) and `mojimili-storage` (uploads, logs and the
+> Passport OAuth keys — these **must** survive deploys, otherwise every connected MCP client is
+> disconnected).
+
+Local smoke test of the production image:
+
+```bash
+docker build -f docker/prod/Dockerfile \
+  --secret id=composer_auth,src=$HOME/.composer/auth.json \
+  -t mojimili-crm:test .
+```
+
+(`docker-compose.yml` + `compose.local.yml` are the Sail-based setup used for local development.)
+
 ## MCP Server (Claude Desktop)
 
 The CRM exposes an [MCP](https://modelcontextprotocol.io) server at `POST /mcp`, so Claude can browse
@@ -127,9 +179,11 @@ out — price, days, payment period, description — falls back to the service c
 
 ### Deployment
 
-`php artisan migrate` and, on the first deploy only, `php artisan passport:keys`. The keys in
-`storage/` are gitignored and **must survive deploys**, otherwise every connected client is
-disconnected. `APP_URL` must be the production HTTPS domain, as it doubles as the OAuth issuer.
+The [Portainer + Traefik stack](#deployment-portainer--traefik) handles this for you: it runs
+`php artisan migrate` on every start and `php artisan passport:keys` once, storing the keys on the
+`mojimili-storage` volume. The keys are gitignored and **must survive deploys**, otherwise every
+connected client is disconnected. `APP_URL` must be the production HTTPS domain (`compose.prod.yml`
+derives it from `DOMAIN_NAME`), as it doubles as the OAuth issuer.
 
 See [docs/mcp.md](docs/mcp.md) for the full details.
 
