@@ -22,23 +22,24 @@ přes [SaveCalculation](../app/Actions/SaveCalculation.php), takže se logika ne
 
 ```bash
 composer install --no-dev --optimize-autoloader
-php artisan migrate          # tabulky oauth_*
-php artisan passport:keys    # jen při prvním nasazení, klíče nejsou v gitu
+php artisan migrate          # tabulky oauth_* + passport_keys
 php artisan config:cache && php artisan route:cache
 ```
 
-Klíče `storage/oauth-*.key` jsou v `.gitignore`. Musí přežít deploy (persistentní volume),
-jinak `/mcp` vrací 500 a po každém nasazení se odpojí všichni klienti. **Doporučeno** je proto
-vložit je do env jako `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY` – pak přežijí i smazání
-volume. Jednořádkový tvar (`\n` místo odřádkování) vygeneruješ takto:
+### OAuth klíče
 
-```bash
-php artisan passport:keys --force
-echo "PASSPORT_PRIVATE_KEY=$(perl -pe 's/\n/\\n/g' storage/oauth-private.key)"
-echo "PASSPORT_PUBLIC_KEY=$(perl -pe 's/\n/\\n/g' storage/oauth-public.key)"
-```
+Passport klíče **negenerujeme na disk ani do env** – vytváří je admin v administraci
+(**Nastavení → MCP / API klíče**, tlačítko „Vygenerovat klíče“) a ukládají se do tabulky
+`passport_keys` v databázi (privátní klíč zašifrovaný přes `APP_KEY`). Díky tomu přežijí
+redeploy i smazání volume. Za běhu se načtou do configu těsně před sestavením OAuth serveru
+(`App\Providers\AppServiceProvider::loadPassportKeysFromDatabase`), takže mají přednost před
+`config/passport.php`.
 
-Viz `.env.production.example` a `config/passport.php` (`str_replace('\n', …)` si escape převede zpět).
+Dokud admin klíče nevygeneruje, vrací `/mcp` chybu a žádný klient se nepřipojí – to je první
+krok po nasazení. Přegenerování klíčů zneplatní vydané tokeny (klienti se přihlásí znovu).
+
+Generování / stav řeší [PassportKeyController](../app/Http/Controllers/PassportKeyController.php)
+a [GeneratePassportKeys](../app/Actions/GeneratePassportKeys.php).
 
 `APP_URL` musí být produkční HTTPS doména — používá se jako OAuth issuer i pro veřejné
 odkazy na kalkulace. Bez HTTPS se Claude nepřipojí.

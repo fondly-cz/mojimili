@@ -28,6 +28,12 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     Route::resource('services', ServiceController::class)->middleware('role:admin');
     Route::resource('users', \App\Http\Controllers\UserController::class)->middleware('role:admin');
 
+    // MCP / API OAuth klíče (Passport) – generování a stav
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/settings/api-keys', [\App\Http\Controllers\PassportKeyController::class, 'edit'])->name('passport-keys.edit');
+        Route::post('/settings/api-keys', [\App\Http\Controllers\PassportKeyController::class, 'regenerate'])->name('passport-keys.regenerate');
+    });
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/my-company', [\App\Http\Controllers\MyCompanyController::class, 'edit'])->name('my-company.edit');

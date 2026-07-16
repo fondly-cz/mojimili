@@ -69,15 +69,9 @@ if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
     ' || echo "VAROVÁNÍ: admina se nepodařilo vytvořit (aplikace běží dál)."
 fi
 
-# Passport klíče pro OAuth (MCP server, API). Generují se jen jednou a zůstávají
-# na volume — jinak by se při každém restartu zneplatnily vydané tokeny.
-# Alternativa: nastav PASSPORT_PRIVATE_KEY / PASSPORT_PUBLIC_KEY jako proměnné.
-if [ -z "${PASSPORT_PRIVATE_KEY}" ] && [ ! -f storage/oauth-private.key ]; then
-    echo "Generuji Passport klíče."
-    php artisan passport:keys --force --no-interaction
-    chown www-data:www-data storage/oauth-*.key
-    chmod 600 storage/oauth-*.key
-fi
+# Passport klíče pro OAuth (MCP server, API) se generují a ukládají do databáze
+# přímo z administrace (Nastavení → MCP / API klíče). Uložením do DB přežijí
+# redeploy i smazání volume, takže je tu nic negenerujeme.
 
 php artisan storage:link || true
 php artisan optimize
