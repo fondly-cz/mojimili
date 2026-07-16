@@ -3,6 +3,7 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\CreateCalculationTool;
+use App\Mcp\Tools\CreateCompanyTool;
 use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\GetCalculationTool;
 use App\Mcp\Tools\ListCalculationsTool;
@@ -22,7 +23,8 @@ Tento server zpřístupňuje CRM: katalog služeb (ceníkové položky) a kalkul
 
 Postup při vytváření kalkulace:
 1. Zavolej list-services a najdi ID služeb, které má kalkulace obsahovat. Nikdy si ID nevymýšlej.
-2. Volitelně zavolej list-companies, pokud má být kalkulace navázaná na firmu v CRM.
+2. Volitelně zavolej list-companies, pokud má být kalkulace navázaná na firmu v CRM. Když firma v CRM ještě
+   není, založ ji nástrojem create-company a použij vrácené company_id (případně company_employee_id).
 3. Zavolej create-calculation. Neuvedeš-li u položky cenu, dny nebo periodu platby, převezmou se z katalogu služby
    (cena = cost * (1 + margin/100)).
 4. Vrácenou veřejnou URL (public_url) můžeš poslat zákazníkovi, aby si položky odsouhlasil.
@@ -42,6 +44,7 @@ class CrmServer extends Server
         CreateServiceTool::class,
         UpdateServiceTool::class,
         ListCompaniesTool::class,
+        CreateCompanyTool::class,
         ListCalculationsTool::class,
         GetCalculationTool::class,
         CreateCalculationTool::class,
