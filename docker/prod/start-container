@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -e
+
+cd /var/www/html
+
+# Persistentní volume se mountuje na storage/ — doplníme adresáře, které Laravel
+# očekává (framework cache, sessions, views, logy).
+mkdir -p \
+    storage/app/public \
+    storage/app/private \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs
+
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
+# Počkáme na databázi (MariaDB v rámci stacku).
+echo "Čekám na databázi ${DB_HOST}:${DB_PORT:-3306}..."
+until php -r '
+    $h=getenv("DB_HOST"); $p=getenv("DB_PORT")?:3306;
+    exit(@fsockopen($h,(int)$p)?0:1);
+' 2>/dev/null; do
+    sleep 2
+done
+echo "Databáze dostupná."
+
+# Detekce prvního nasazení: prázdná DB nemá tabulku migrations. Nelze použít
+# `artisan migrate:status` – ten skončí s kódem 0 i nad prázdnou databází.
+FRESH_DB=$(php -r '
+    $h=getenv("DB_HOST"); $p=getenv("DB_PORT")?:3306; $d=getenv("DB_DATABASE");
+    try {
+        $pdo = new PDO("mysql:host=$h;port=$p;dbname=$d", getenv("DB_USERNAME"), getenv("DB_PASSWORD"));
+        echo $pdo->query("SHOW TABLES LIKE \"migrations\"")->fetch() ? "no" : "yes";
+    } catch (Throwable $e) {
+        echo "yes";
+    }
+')
+
+php artisan migrate --force --no-interaction
+
+# Ceník služeb (reference data) — jen při prvním nasazení. ServiceSeeder si
+# tabulku před naplněním maže, proto se při dalších startech nesmí spouštět.
+# Pozn.: `db:seed` (celý DatabaseSeeder) v produkci NEFUNGUJE – používá
+# factories → fakerphp/faker, což je require-dev balíček a v image není.
+if [ "$FRESH_DB" = "yes" ] && [ "${SEED_SERVICES:-true}" = "true" ]; then
+    echo "První nasazení (prázdná DB) — plním ceník služeb."
+    php artisan db:seed --class=ServiceSeeder --force --no-interaction
+fi
+
+# První admin. Vytvoří se jen když ještě neexistuje uživatel s tímto e-mailem,
+# takže je bezpečné nechat proměnné nastavené natrvalo.
+if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
+    php artisan tinker --execute='
+        $email = getenv("ADMIN_EMAIL");
+        if (\App\Models\User::where("email", $email)->exists()) {
+            echo "Admin {$email} už existuje.\n";
+        } else {
+            \App\Models\User::create([
+                "name" => getenv("ADMIN_NAME") ?: "Admin",
+                "email" => $email,
+                "password" => getenv("ADMIN_PASSWORD"),
+                "role" => \App\Enums\UserRole::ADMIN,
+                "email_verified_at" => now(),
+            ]);
+            echo "Admin {$email} vytvořen.\n";
+        }
+    ' || echo "VAROVÁNÍ: admina se nepodařilo vytvořit (aplikace běží dál)."
+fi
+
+# Passport klíče pro OAuth (MCP server, API). Generují se jen jednou a zůstávají
+# na volume — jinak by se při každém restartu zneplatnily vydané tokeny.
+# Alternativa: nastav PASSPORT_PRIVATE_KEY / PASSPORT_PUBLIC_KEY jako proměnné.
+if [ -z "${PASSPORT_PRIVATE_KEY}" ] && [ ! -f storage/oauth-private.key ]; then
+    echo "Generuji Passport klíče."
+    php artisan passport:keys --force --no-interaction
+    chown www-data:www-data storage/oauth-*.key
+    chmod 600 storage/oauth-*.key
+fi
+
+php artisan storage:link || true
+php artisan optimize
+
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

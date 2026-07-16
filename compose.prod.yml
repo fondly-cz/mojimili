@@ -1,0 +1,112 @@
+# Produkční stack pro Portainer + Traefik.
+#   Portainer → Stacks → Add stack → Repository
+#   Compose path: compose.prod.yml
+#   Proměnné (APP_KEY, DB hesla, Google OAuth…) nastav v Portaineru v sekci
+#   "Environment variables" – viz .env.production.example.
+
+services:
+  mojimili-laravel:
+    build:
+      context: .
+      dockerfile: docker/prod/Dockerfile
+      args:
+        # Privátní repo fondly-cz/ares-connector → composer potřebuje GitHub token.
+        # V Portaineru nastav GITHUB_TOKEN (read-only PAT s přístupem k fondly-cz).
+        COMPOSER_AUTH: '{"github-oauth":{"github.com":"${GITHUB_TOKEN}"}}'
+    image: mojimili-crm:latest
+    pull_policy: build
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-MojiMili}
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY}
+      APP_URL: https://${DOMAIN_NAME}
+      ASSET_URL: https://${DOMAIN_NAME}
+      APP_TIMEZONE: Europe/Prague
+      APP_LOCALE: cs
+      APP_FALLBACK_LOCALE: cs
+
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+
+      DB_CONNECTION: mysql
+      DB_HOST: mojimili-mariadb
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      SESSION_DRIVER: database
+      SESSION_DOMAIN: ${DOMAIN_NAME}
+      SESSION_SECURE_COOKIE: "true"
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      FILESYSTEM_DISK: local
+
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SCHEME: ${MAIL_SCHEME:-tls}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@fondly.cz}
+      MAIL_FROM_NAME: ${APP_NAME:-MojiMili}
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: https://${DOMAIN_NAME}/auth/google/callback
+
+      # Ceník služeb se naplní jen při prvním nasazení (prázdná DB).
+      SEED_SERVICES: ${SEED_SERVICES:-true}
+      # První admin – vytvoří se, jen pokud uživatel s tímto e-mailem neexistuje.
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      - mojimili-storage:/var/www/html/storage
+    depends_on:
+      mojimili-mariadb:
+        condition: service_healthy
+    networks:
+      - traefik
+      - internal
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${NETWORK_NAME:-traefik_traefik}
+      - traefik.http.routers.mojimili.rule=Host(`${DOMAIN_NAME}`)
+      - traefik.http.routers.mojimili.entrypoints=websecure
+      - traefik.http.routers.mojimili.tls=true
+      - traefik.http.routers.mojimili.tls.certresolver=${CERT_RESOLVER:-le}
+      - traefik.http.services.mojimili.loadbalancer.server.port=80
+
+  mojimili-mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mojimili-db:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+volumes:
+  mojimili-db:
+    driver: local
+  mojimili-storage:
+    driver: local
+
+networks:
+  traefik:
+    external: true
+    name: ${NETWORK_NAME:-traefik_traefik}
+  internal:
+    driver: bridge
