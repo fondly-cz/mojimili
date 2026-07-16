@@ -9,6 +9,7 @@ use App\Mcp\Tools\GetCalculationTool;
 use App\Mcp\Tools\ListCalculationsTool;
 use App\Mcp\Tools\ListCompaniesTool;
 use App\Mcp\Tools\ListServicesTool;
+use App\Mcp\Tools\UpdateCalculationTool;
 use App\Mcp\Tools\UpdateServiceTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
@@ -29,6 +30,10 @@ Postup při vytváření kalkulace:
    (cena = cost * (1 + margin/100)).
 4. Vrácenou veřejnou URL (public_url) můžeš poslat zákazníkovi, aby si položky odsouhlasil.
 
+Existující kalkulaci uprav nástrojem update-calculation – vyplň jen pole, která se mají změnit. Uvedeš-li items,
+nahradí se jimi všechny dosavadní položky (a zruší se u nich případné odsouhlasení zákazníkem); vynecháš-li items,
+položky zůstanou beze změny.
+
 Položky lze zanořovat: každé položce dej `key` a podřízené položce nastav `parent_key` na klíč rodiče.
 Ceny jsou v Kč bez DPH. Správu služeb (create-service, update-service) smí volat pouze administrátor.
 TEXT)]
@@ -48,5 +53,6 @@ class CrmServer extends Server
         ListCalculationsTool::class,
         GetCalculationTool::class,
         CreateCalculationTool::class,
+        UpdateCalculationTool::class,
     ];
 }

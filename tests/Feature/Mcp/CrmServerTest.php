@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Mcp;
 
+use App\Actions\SaveCalculation;
 use App\Enums\UserRole;
 use App\Mcp\Servers\CrmServer;
 use App\Mcp\Tools\CreateCalculationTool;
 use App\Mcp\Tools\CreateCompanyTool;
 use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\ListServicesTool;
+use App\Mcp\Tools\UpdateCalculationTool;
 use App\Models\Calculation;
 use App\Models\Company;
 use App\Models\Service;
@@ -220,5 +222,124 @@ class CrmServerTest extends TestCase
             ->assertHasErrors();
 
         $this->assertDatabaseCount('calculations', 0);
+    }
+
+    public function test_it_updates_only_the_supplied_fields_and_keeps_items(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        $service = Service::create([
+            'name' => 'Web na míru', 'category' => 'Vývoj', 'cost' => 10000,
+            'margin' => 30, 'days' => 10, 'payment_period' => 'once',
+        ]);
+
+        CrmServer::actingAs($user)->tool(CreateCalculationTool::class, [
+            'customer_name' => 'Jan Novák',
+            'customer_email' => 'jan@example.com',
+            'customer_phone' => '+420 777 123 456',
+            'items' => [['service_id' => $service->id]],
+        ])->assertOk();
+
+        $calculation = Calculation::firstOrFail();
+        $originalItemId = $calculation->items()->firstOrFail()->id;
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCalculationTool::class, [
+                'id' => $calculation->id,
+                'customer_name' => 'Jan Upravený',
+                'note' => 'Interní poznámka',
+            ])
+            ->assertOk()
+            ->assertSee('Jan Upravený');
+
+        $calculation->refresh()->load('items');
+
+        // Changed fields updated, untouched fields preserved.
+        $this->assertSame('Jan Upravený', $calculation->customer_name);
+        $this->assertSame('Interní poznámka', $calculation->note);
+        $this->assertSame('jan@example.com', $calculation->customer_email);
+
+        // Items were not sent, so they stay exactly as they were.
+        $this->assertCount(1, $calculation->items);
+        $this->assertSame($originalItemId, $calculation->items->first()->id);
+    }
+
+    public function test_it_replaces_all_items_when_items_are_supplied(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        $oldService = Service::create([
+            'name' => 'Původní', 'category' => 'Vývoj', 'cost' => 1000,
+            'margin' => 0, 'days' => 1, 'payment_period' => 'once',
+        ]);
+        $newService = Service::create([
+            'name' => 'Nová', 'category' => 'Vývoj', 'cost' => 2000,
+            'margin' => 0, 'days' => 3, 'payment_period' => 'once',
+        ]);
+
+        CrmServer::actingAs($user)->tool(CreateCalculationTool::class, [
+            'customer_name' => 'Jan Novák',
+            'customer_email' => 'jan@example.com',
+            'customer_phone' => '+420 777 123 456',
+            'items' => [['service_id' => $oldService->id]],
+        ])->assertOk();
+
+        $calculation = Calculation::firstOrFail();
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCalculationTool::class, [
+                'id' => $calculation->id,
+                'items' => [['service_id' => $newService->id, 'price' => 5000]],
+            ])
+            ->assertOk();
+
+        $calculation->refresh()->load('items');
+
+        $this->assertCount(1, $calculation->items);
+        $this->assertSame($newService->id, $calculation->items->first()->service_id);
+        $this->assertSame('5000.00', $calculation->items->first()->price);
+        $this->assertDatabaseMissing('calculation_items', ['service_id' => $oldService->id]);
+    }
+
+    public function test_it_rejects_updating_a_calculation_that_does_not_exist(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCalculationTool::class, [
+                'id' => 999,
+                'customer_name' => 'Nikdo',
+            ])
+            ->assertHasErrors();
+    }
+
+    public function test_user_without_role_cannot_update_a_calculation(): void
+    {
+        $user = User::factory()->create(['role' => null]);
+
+        $service = Service::create([
+            'name' => 'Web', 'category' => 'Vývoj', 'cost' => 1000,
+            'margin' => 0, 'days' => 1, 'payment_period' => 'once',
+        ]);
+
+        $calculation = (new SaveCalculation)->create([
+            'customer_name' => 'Jan Novák',
+            'customer_email' => 'jan@example.com',
+            'customer_phone' => '+420 777 123 456',
+            'services' => [[
+                'id' => $service->id, 'unique_id' => 'a', 'parent_id' => null,
+                'price' => 1000, 'days' => 1, 'payment_period' => 'once',
+                'description' => null, 'is_required' => false,
+            ]],
+        ], null);
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCalculationTool::class, [
+                'id' => $calculation->id,
+                'customer_name' => 'Změna',
+            ])
+            ->assertHasErrors();
+
+        $this->assertSame('Jan Novák', $calculation->refresh()->customer_name);
     }
 }
