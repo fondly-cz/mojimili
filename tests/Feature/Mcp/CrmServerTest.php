@@ -5,9 +5,11 @@ namespace Tests\Feature\Mcp;
 use App\Enums\UserRole;
 use App\Mcp\Servers\CrmServer;
 use App\Mcp\Tools\CreateCalculationTool;
+use App\Mcp\Tools\CreateCompanyTool;
 use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\ListServicesTool;
 use App\Models\Calculation;
+use App\Models\Company;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -84,6 +86,71 @@ class CrmServerTest extends TestCase
             ->assertOk()
             ->assertSee('Aktivní služba')
             ->assertDontSee('Zrušená služba');
+    }
+
+    public function test_it_creates_a_company_with_contacts(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        $response = CrmServer::actingAs($user)->tool(CreateCompanyTool::class, [
+            'name' => 'LaDanza',
+            'ico' => '12345678',
+            'email' => 'info@ladanza.cz',
+            'website' => 'https://ladanza.cz',
+            'status' => 'prospect',
+            'contacts' => [
+                ['name' => 'Petra Nová', 'email' => 'petra@ladanza.cz', 'position' => 'Jednatelka'],
+            ],
+        ]);
+
+        $response->assertOk()->assertSee('LaDanza');
+
+        $company = Company::with('employees')->firstOrFail();
+
+        $this->assertSame('LaDanza', $company->name);
+        $this->assertSame('12345678', $company->ico);
+        $this->assertSame('prospect', $company->status);
+        $this->assertCount(1, $company->employees);
+        $this->assertSame('Petra Nová', $company->employees->first()->name);
+    }
+
+    public function test_it_defaults_a_company_to_active_status(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        CrmServer::actingAs($user)
+            ->tool(CreateCompanyTool::class, ['name' => 'Bez stavu'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('companies', [
+            'name' => 'Bez stavu',
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_it_rejects_an_invalid_company_website(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        CrmServer::actingAs($user)
+            ->tool(CreateCompanyTool::class, [
+                'name' => 'Chybný web',
+                'website' => 'ladanza',
+            ])
+            ->assertHasErrors();
+
+        $this->assertDatabaseCount('companies', 0);
+    }
+
+    public function test_user_without_role_cannot_create_a_company(): void
+    {
+        $user = User::factory()->create(['role' => null]);
+
+        CrmServer::actingAs($user)
+            ->tool(CreateCompanyTool::class, ['name' => 'LaDanza'])
+            ->assertHasErrors();
+
+        $this->assertDatabaseCount('companies', 0);
     }
 
     public function test_it_creates_a_calculation_with_nested_items_and_catalog_defaults(): void

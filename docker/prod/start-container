@@ -74,6 +74,11 @@ fi
 # redeploy i smazání volume, takže je tu nic negenerujeme.
 
 php artisan storage:link || true
+
+# Nejdřív zahodit starou cache (route/config), pak nacachovat znovu z aktuálního
+# kódu. Tím se po redeployi propíše i nový seznam MCP nástrojů (CrmServer) —
+# route cache jinak drží starou verzi a konektor vidí staré tools.
+php artisan optimize:clear
 php artisan optimize
 
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
