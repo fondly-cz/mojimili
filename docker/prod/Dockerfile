@@ -76,7 +76,12 @@ COPY . .
 COPY --from=vendor /var/www/html/vendor ./vendor
 
 # Dočasný .env (z .env.example) jen kvůli VITE_APP_NAME při buildu.
+# ASSET_URL musí být při buildu prázdný – laravel-vite-plugin z něj skládá Vite
+# `base` pro lazy-loaded chunky. Pokud zůstane http://localhost, zapeče se do
+# dynamických importů a v produkci padá na mixed-content/CORS. Prázdný ASSET_URL
+# dá relativní base `/build/`, který funguje z libovolné domény.
 RUN cp .env.example .env \
+    && sed -i 's|^ASSET_URL=.*|ASSET_URL=|' .env \
     && pnpm run build \
     && rm -f .env
 
