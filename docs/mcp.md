@@ -28,8 +28,17 @@ php artisan config:cache && php artisan route:cache
 ```
 
 Klíče `storage/oauth-*.key` jsou v `.gitignore`. Musí přežít deploy (persistentní volume),
-jinak se po každém nasazení odpojí všichni klienti. Alternativně je vlož do env jako
-`PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY` (viz `config/passport.php`).
+jinak `/mcp` vrací 500 a po každém nasazení se odpojí všichni klienti. **Doporučeno** je proto
+vložit je do env jako `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY` – pak přežijí i smazání
+volume. Jednořádkový tvar (`\n` místo odřádkování) vygeneruješ takto:
+
+```bash
+php artisan passport:keys --force
+echo "PASSPORT_PRIVATE_KEY=$(perl -pe 's/\n/\\n/g' storage/oauth-private.key)"
+echo "PASSPORT_PUBLIC_KEY=$(perl -pe 's/\n/\\n/g' storage/oauth-public.key)"
+```
+
+Viz `.env.production.example` a `config/passport.php` (`str_replace('\n', …)` si escape převede zpět).
 
 `APP_URL` musí být produkční HTTPS doména — používá se jako OAuth issuer i pro veřejné
 odkazy na kalkulace. Bez HTTPS se Claude nepřipojí.

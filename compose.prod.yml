@@ -27,6 +27,13 @@ services:
       APP_LOCALE: cs
       APP_FALLBACK_LOCALE: cs
 
+      # Passport OAuth klíče pro MCP server / API. Když jsou nastavené, mají
+      # přednost před soubory na volume (start-container je pak negeneruje) a
+      # hlavně PŘEŽIJÍ smazání volume i redeploy. Jednořádkový PEM s "\n" místo
+      # skutečných odřádkování – Passport si je převede zpět. Viz .env.production.example.
+      PASSPORT_PRIVATE_KEY: ${PASSPORT_PRIVATE_KEY:-}
+      PASSPORT_PUBLIC_KEY: ${PASSPORT_PUBLIC_KEY:-}
+
       LOG_CHANNEL: stderr
       LOG_LEVEL: ${LOG_LEVEL:-warning}
 
