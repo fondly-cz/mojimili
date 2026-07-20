@@ -55,7 +55,7 @@ class UpdateCalculationTool extends Tool
             'items.*.service_id.exists' => 'Některá služba s tímto ID neexistuje. Ověř ID nástrojem list-services.',
         ]);
 
-        $calculation = Calculation::findOrFail($validated['id']);
+        $calculation = Calculation::query()->where('id', $validated['id'])->firstOrFail();
 
         // Only the fields the client actually sent overwrite the calculation;
         // everything else keeps its current value.

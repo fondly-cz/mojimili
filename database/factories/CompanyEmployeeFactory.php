@@ -2,10 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\Company;
+use App\Models\CompanyEmployee;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CompanyEmployee>
+ * @extends Factory<CompanyEmployee>
  */
 class CompanyEmployeeFactory extends Factory
 {
@@ -17,7 +19,17 @@ class CompanyEmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'company_id' => Company::factory(),
+            'user_id' => null,
+            'name' => fake()->name(),
+            'email' => fake()->safeEmail(),
+            'phone' => fake()->phoneNumber(),
+            'position' => fake()->jobTitle(),
         ];
+    }
+
+    public function forCompany(Company $company): static
+    {
+        return $this->state(fn () => ['company_id' => $company->id]);
     }
 }

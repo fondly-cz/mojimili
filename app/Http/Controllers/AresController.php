@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Fondly\Ares\Ares;
 use Exception;
+use Fondly\Ares\Ares;
 use Illuminate\Http\Request;
 
 class AresController extends Controller

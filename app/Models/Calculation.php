@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Database\Factories\CalculationFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +11,9 @@ use Illuminate\Support\Str;
 
 class Calculation extends Model
 {
+    /** @use HasFactory<CalculationFactory> */
+    use HasFactory;
+
     protected $guarded = [];
 
     protected $casts = [

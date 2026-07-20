@@ -2,10 +2,17 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentPeriod;
+use Database\Factories\CalculationItemFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CalculationItem extends Model
 {
+    /** @use HasFactory<CalculationItemFactory> */
+    use HasFactory;
+
     protected $guarded = [];
 
     protected $casts = [
@@ -15,15 +22,15 @@ class CalculationItem extends Model
         'cost' => 'decimal:2',
         'margin' => 'decimal:2',
         'parent_id' => 'integer',
-        'payment_period' => \App\Enums\PaymentPeriod::class,
+        'payment_period' => PaymentPeriod::class,
     ];
 
-    public function calculation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function calculation(): BelongsTo
     {
         return $this->belongsTo(Calculation::class);
     }
 
-    public function service(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
     }

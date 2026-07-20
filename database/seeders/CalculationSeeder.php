@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Calculation;
+use App\Models\Service;
 use Illuminate\Database\Seeder;
 
 class CalculationSeeder extends Seeder
@@ -11,7 +13,7 @@ class CalculationSeeder extends Seeder
      */
     public function run(): void
     {
-        $services = \App\Models\Service::all();
+        $services = Service::all();
 
         if ($services->isEmpty()) {
             $this->command->warn('No services found. Run ServiceSeeder first.');
@@ -43,7 +45,7 @@ class CalculationSeeder extends Seeder
         foreach ($customers as $customer) {
             $selectedServices = $services->random(rand(2, 4));
 
-            $calculation = \App\Models\Calculation::create([
+            $calculation = Calculation::create([
                 'customer_name' => $customer['name'],
                 'customer_email' => $customer['email'],
                 'customer_phone' => $customer['phone'],

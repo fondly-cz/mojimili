@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\EnsureHasAnyRole;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,16 +18,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            AddLinkHeadersForPreloadedAssets::class,
         ]);
 
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
+            HandleInertiaRequests::class,
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
-            'hasRole' => \App\Http\Middleware\EnsureHasAnyRole::class,
+            'role' => CheckRole::class,
+            'hasRole' => EnsureHasAnyRole::class,
         ]);
 
         $middleware->trustProxies(

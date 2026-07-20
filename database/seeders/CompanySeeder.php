@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use Illuminate\Database\Seeder;
 
 class CompanySeeder extends Seeder
@@ -79,7 +80,7 @@ class CompanySeeder extends Seeder
         ];
 
         foreach ($companies as $company) {
-            \App\Models\Company::create($company);
+            Company::create($company);
         }
     }
 }

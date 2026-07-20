@@ -26,6 +26,9 @@
                     <Link :href="`/calculations/${calculation.id}/edit`" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-brand-primary-from bg-white hover:bg-gray-50 transition-all font-heading">
                         ✏️ Upravit
                     </Link>
+                    <button @click="showTodolistModal = true" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-gray-700 bg-white hover:bg-gray-50 transition-all font-heading">
+                        ✅ Do projektu
+                    </button>
                     <button @click="shareEmail" class="inline-flex items-center px-6 py-3 brand-gradient text-sm font-bold rounded-full shadow-brand text-white hover:shadow-brand-lg transition-all hover:-translate-y-0.5 font-heading">
                         ✉️ Poslat klientovi
                     </button>
@@ -189,6 +192,14 @@
                 </div>
             </div>
         </div>
+
+        <CreateTodolistFromCalculationModal
+            v-if="!is_public"
+            :show="showTodolistModal"
+            :calculation="calculation"
+            :projects="projects"
+            @close="showTodolistModal = false"
+        />
     </Layout>
 </template>
 
@@ -198,14 +209,21 @@ import { ref, computed } from 'vue'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import CalculationItemDisplay from '../../Components/CalculationItemDisplay.vue'
+import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
 
 const props = defineProps({
     calculation: Object,
     is_public: {
         type: Boolean,
         default: false
+    },
+    projects: {
+        type: Array,
+        default: () => []
     }
 })
+
+const showTodolistModal = ref(false)
 
 // Function to collect required children (recursively)
 const getRequiredDescendants = (parentId) => {

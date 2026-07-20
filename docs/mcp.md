@@ -11,12 +11,30 @@ Claude se tak připojí pod tvým vlastním CRM účtem a má přesně stejná p
 | `create-service` | admin | přidá službu do katalogu |
 | `update-service` | admin | upraví existující službu |
 | `list-companies` | role v CRM | firmy a jejich kontaktní osoby (pro `company_id`) |
+| `create-company` | role v CRM | založí firmu včetně kontaktních osob |
 | `list-calculations` | role v CRM | seznam kalkulací |
 | `get-calculation` | role v CRM | detail kalkulace včetně položek |
 | `create-calculation` | role v CRM | vytvoří kalkulaci a vrátí veřejnou URL pro zákazníka |
+| `update-calculation` | role v CRM | upraví kalkulaci; s `items` nahradí všechny položky |
+| `list-projects` | role v CRM | seznam projektů (filtr podle názvu, stavu, firmy) |
+| `get-project` | role v CRM | detail projektu včetně seznamů úkolů a úkolů |
+| `create-project` | role v CRM | založí projekt |
+| `update-project` | role v CRM | upraví projekt; mění jen vyplněná pole |
+| `create-todolist` | role v CRM | založí v projektu seznam úkolů, volitelně rovnou s úkoly |
+| `create-todolist-from-calculation` | role v CRM | převede položky kalkulace na úkoly v projektu |
+| `update-todo` | role v CRM | dokončení, přiřazení řešitele, termín nebo název úkolu |
 
 Server i nástroje jsou v [app/Mcp/](../app/Mcp/). Ukládání kalkulace sdílí web i MCP
 přes [SaveCalculation](../app/Actions/SaveCalculation.php), takže se logika nemůže rozejít.
+Stejně tak převod kalkulace na úkoly sdílí web i MCP přes
+[CreateTodolistFromCalculation](../app/Actions/CreateTodolistFromCalculation.php).
+
+### Zanoření
+
+Položky kalkulace i úkoly se zanořují stejným způsobem: každé položce dáš `key`
+a podřízené nastavíš `parent_key` na klíč rodiče. Při převodu kalkulace na úkoly se
+zanoření zachová automaticky — vybereš-li podpoložku bez rodiče, nadřazené položky se
+do seznamu doplní, aby úkol nezůstal osiřelý.
 
 ## Nasazení na produkci
 

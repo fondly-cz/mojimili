@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Enums\UserRole;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,8 +21,8 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Fondly Admin',
             'email' => 'spoluprace@fondly.cz',
-            'password' => \Illuminate\Support\Facades\Hash::make('admin'),
-            'role' => \App\Enums\UserRole::ADMIN,
+            'password' => Hash::make('admin'),
+            'role' => UserRole::ADMIN,
         ]);
 
         $this->call([

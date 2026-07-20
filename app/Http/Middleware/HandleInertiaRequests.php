@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\MyCompany;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,7 +39,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
-            'my_company' => \App\Models\MyCompany::first(),
+            'my_company' => MyCompany::first(),
         ];
     }
 }

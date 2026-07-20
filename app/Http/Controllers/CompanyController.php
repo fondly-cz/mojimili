@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
-use Fondly\Ares\Ares;
 use Exception;
+use Fondly\Ares\Ares;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
