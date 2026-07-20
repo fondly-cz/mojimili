@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\Calculation;
 use App\Models\Service;
+use InvalidArgumentException;
 
 class SaveCalculation
 {
@@ -65,6 +66,18 @@ class SaveCalculation
      */
     private function syncItems(Calculation $calculation, array $items): void
     {
+        $duplicateKeys = collect($items)->pluck('unique_id')->duplicates();
+
+        if ($duplicateKeys->isNotEmpty()) {
+            // Two items sharing a unique_id would each be inserted, but only the last
+            // would be registered as a possible parent – leaving an orphan duplicate
+            // with no children. Fail loudly instead of silently corrupting the tree.
+            throw new InvalidArgumentException(sprintf(
+                'Položky kalkulace musí mít unikátní unique_id. Duplicitní hodnoty: %s.',
+                $duplicateKeys->unique()->implode(', '),
+            ));
+        }
+
         $services = Service::whereIn('id', collect($items)->pluck('id'))->get();
         $created = [];
 

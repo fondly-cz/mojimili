@@ -67,6 +67,19 @@ class UpdateCalculationTool extends Tool
             // Full replacement of the item list – rebuild it the same way create does.
             $items = $this->buildItems($validated['items']);
 
+            $duplicateKeys = collect($items)
+                ->pluck('unique_id')
+                ->duplicates()
+                ->unique()
+                ->values();
+
+            if ($duplicateKeys->isNotEmpty()) {
+                return Response::error(sprintf(
+                    'Tyto hodnoty key se v kalkulaci opakují: %s. Každá položka musí mít vlastní unikátní key, jinak by se položka založila dvakrát a podřízené položky by se navázaly jen na jednu z kopií.',
+                    $duplicateKeys->implode(', '),
+                ));
+            }
+
             $unknownParents = collect($items)
                 ->pluck('parent_id')
                 ->filter()

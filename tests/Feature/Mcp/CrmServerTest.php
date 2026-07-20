@@ -224,6 +224,32 @@ class CrmServerTest extends TestCase
         $this->assertDatabaseCount('calculations', 0);
     }
 
+    public function test_it_rejects_items_sharing_the_same_key(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        $service = Service::create([
+            'name' => 'Hosting', 'category' => 'Provoz', 'cost' => 1000,
+            'margin' => 30, 'days' => 1, 'payment_period' => 'monthly',
+        ]);
+
+        // Two items with the same key would each be inserted, but a child could only
+        // attach to one of them – leaving a silent orphan duplicate.
+        CrmServer::actingAs($user)
+            ->tool(CreateCalculationTool::class, [
+                'customer_name' => 'Jan Novák',
+                'customer_email' => 'jan@example.com',
+                'customer_phone' => '+420 777 123 456',
+                'items' => [
+                    ['service_id' => $service->id, 'key' => 'hosting'],
+                    ['service_id' => $service->id, 'key' => 'hosting'],
+                ],
+            ])
+            ->assertHasErrors();
+
+        $this->assertDatabaseCount('calculations', 0);
+    }
+
     public function test_it_updates_only_the_supplied_fields_and_keeps_items(): void
     {
         $user = User::factory()->create(['role' => UserRole::MANAGER]);
