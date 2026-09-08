@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Actions\SaveCalculation;
+use App\Mail\CalculationConfirmed;
 use App\Models\Calculation;
 use App\Models\CalculationItem;
 use App\Models\Project;
 use App\Models\Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class CalculationController extends Controller
 {
@@ -120,6 +122,12 @@ class CalculationController extends Controller
             'total_days' => $totalDays,
             'status' => 'confirmed',
         ]);
+
+        $author = $calculation->user;
+
+        if ($author?->email) {
+            Mail::to($author->email)->send(new CalculationConfirmed($calculation->fresh('items')));
+        }
 
         return back()->with('success', 'Kalkulace byla úspěšně potvrzena. Děkujeme!');
     }
