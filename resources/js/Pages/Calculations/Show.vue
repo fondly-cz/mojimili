@@ -20,6 +20,13 @@
                     <div v-if="calculation.status === 'confirmed'" class="px-5 py-2.5 bg-green-50 text-green-600 rounded-full flex items-center gap-2 font-bold text-sm border border-green-100 shadow-sm animate-pulse-slow">
                         <span>✓ Nabídka potvrzena</span>
                     </div>
+                    <button
+                        v-if="calculation.status === 'confirmed' && $page.props.auth.user?.role === 'admin'"
+                        @click="unconfirm"
+                        class="inline-flex items-center px-6 py-3 border-2 border-amber-100 shadow-sm text-sm font-bold rounded-full text-amber-700 bg-white hover:bg-amber-50 transition-all font-heading"
+                    >
+                        ↩️ Zrušit potvrzení
+                    </button>
                     <button @click="print" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-gray-700 bg-white hover:bg-gray-50 transition-all font-heading">
                         🖨️ PDF / Tisk
                     </button>
@@ -354,6 +361,14 @@ const confirmSelection = () => {
     
     router.post(`/c/${props.calculation.access_token}/confirm`, {
         accepted_items: selectedIds.value
+    })
+}
+
+const unconfirm = () => {
+    if (!confirm('Opravdu chcete zrušit potvrzení této kalkulace? Vrátí se do stavu rozpracované a zákazník ji bude moci znovu upravit a potvrdit.')) return
+
+    router.patch(`/calculations/${props.calculation.id}/unconfirm`, {}, {
+        preserveScroll: true,
     })
 }
 

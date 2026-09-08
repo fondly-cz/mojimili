@@ -124,6 +124,13 @@ class CalculationController extends Controller
         return back()->with('success', 'Kalkulace byla úspěšně potvrzena. Děkujeme!');
     }
 
+    public function unconfirm(Calculation $calculation)
+    {
+        $calculation->update(['status' => 'draft']);
+
+        return back()->with('success', 'Potvrzení kalkulace bylo zrušeno. Zákazník ji nyní může znovu upravit a potvrdit.');
+    }
+
     public function edit(Calculation $calculation)
     {
         return inertia('Calculations/Edit', [

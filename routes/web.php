@@ -35,6 +35,7 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
 
     Route::resource('calculations', CalculationController::class);
     Route::post('calculations/bulk-delete', [CalculationController::class, 'bulkDelete'])->name('calculations.bulk-delete');
+    Route::patch('calculations/{calculation}/unconfirm', [CalculationController::class, 'unconfirm'])->name('calculations.unconfirm')->middleware('role:admin');
 
     // Projekty, seznamy úkolů a úkoly
     Route::post('projects/bulk-delete', [ProjectController::class, 'bulkDelete'])->name('projects.bulk-delete');
