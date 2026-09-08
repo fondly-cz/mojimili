@@ -47,6 +47,16 @@
                         </svg>
                     </Link>
                     <button
+                        v-if="calculation.status === 'confirmed' && $page.props.auth.user?.role === 'admin'"
+                        @click="unconfirm"
+                        class="p-2.5 bg-gray-50 text-amber-500 rounded-xl hover:text-amber-600 hover:bg-white hover:shadow-sm transition-all"
+                        title="Zrušit potvrzení zákazníkem"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v6h6M3 13a9 9 0 1 0 3-7.7L3 8" />
+                        </svg>
+                    </button>
+                    <button
                         @click="confirmDeleteOpen = true"
                         class="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:text-red-500 hover:bg-white hover:shadow-sm transition-all"
                         title="Smazat"
@@ -476,6 +486,14 @@ const copied = ref(false)
 const executeDelete = () => {
     router.delete(`/calculations/${props.calculation.id}`, {
         onSuccess: () => confirmDeleteOpen.value = false
+    })
+}
+
+const unconfirm = () => {
+    if (!confirm('Opravdu chcete zrušit potvrzení této kalkulace? Vrátí se do stavu rozpracované a zákazník ji bude moci znovu upravit a potvrdit.')) return
+
+    router.patch(`/calculations/${props.calculation.id}/unconfirm`, {}, {
+        preserveScroll: true,
     })
 }
 
