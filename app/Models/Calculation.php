@@ -36,6 +36,28 @@ class Calculation extends Model
     }
 
     /**
+     * The description is rendered as HTML. Plain text or Markdown (e.g. from the MCP tools)
+     * is converted so its paragraphs and line breaks survive; HTML from the editor is kept.
+     */
+    public function setDescriptionAttribute(?string $value): void
+    {
+        $this->attributes['description'] = self::descriptionToHtml($value);
+    }
+
+    public static function descriptionToHtml(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '' || $value !== strip_tags($value)) {
+            return $value;
+        }
+
+        return trim(Str::markdown($value, [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+            'renderer' => ['soft_break' => "<br>\n"],
+        ]));
+    }
+
+    /**
      * @return HasMany<CalculationItem, $this>
      */
     public function items(): HasMany

@@ -146,7 +146,7 @@ class CreateCalculationTool extends Tool
                 ->description('Název firmy zákazníka, pokud není navázaná přes company_id.'),
 
             'description' => $schema->string()
-                ->description('Úvodní text kalkulace zobrazený zákazníkovi.'),
+                ->description('Úvodní text kalkulace zobrazený zákazníkovi. Prostý text nebo Markdown, odstavce odděl prázdným řádkem.'),
 
             'note' => $schema->string()
                 ->description('Interní poznámka ke kalkulaci.'),
