@@ -203,7 +203,7 @@ class UpdateCalculationTool extends Tool
                 ->description('Nový název firmy zákazníka, pokud není navázaná přes company_id.'),
 
             'description' => $schema->string()
-                ->description('Nový úvodní text kalkulace zobrazený zákazníkovi.'),
+                ->description('Nový úvodní text kalkulace zobrazený zákazníkovi. Prostý text nebo Markdown, odstavce odděl prázdným řádkem.'),
 
             'note' => $schema->string()
                 ->description('Nová interní poznámka ke kalkulaci.'),
