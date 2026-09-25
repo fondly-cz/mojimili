@@ -201,6 +201,43 @@ class CrmServerTest extends TestCase
         $this->assertSame($parentItem->id, $childItem->parent_id);
     }
 
+    public function test_it_creates_a_calculation_with_custom_date_and_validity(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+        $service = Service::factory()->create();
+
+        CrmServer::actingAs($user)->tool(CreateCalculationTool::class, [
+            'customer_name' => 'Jan Novák',
+            'customer_email' => 'jan@example.com',
+            'customer_phone' => '+420 777 123 456',
+            'created_at' => '2026-01-15',
+            'valid_days' => 14,
+            'items' => [['service_id' => $service->id]],
+        ])->assertOk();
+
+        $calculation = Calculation::firstOrFail();
+
+        $this->assertSame('2026-01-15', $calculation->created_at->toDateString());
+        $this->assertSame(14, $calculation->valid_days);
+    }
+
+    public function test_it_updates_date_and_validity_without_touching_items(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+        $calculation = Calculation::factory()->create(['created_at' => '2026-09-20 10:30:00']);
+
+        CrmServer::actingAs($user)->tool(UpdateCalculationTool::class, [
+            'id' => $calculation->id,
+            'created_at' => '2026-01-15',
+            'valid_days' => 60,
+        ])->assertOk();
+
+        $calculation->refresh();
+
+        $this->assertSame('2026-01-15 10:30:00', $calculation->created_at->format('Y-m-d H:i:s'));
+        $this->assertSame(60, $calculation->valid_days);
+    }
+
     public function test_it_rejects_an_item_referencing_an_unknown_parent_key(): void
     {
         $user = User::factory()->create(['role' => UserRole::MANAGER]);

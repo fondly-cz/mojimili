@@ -379,6 +379,19 @@
                                 <textarea v-model="form.note" rows="3" class="w-full px-5 py-3.5 bg-gray-50 border-gray-100 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-2 focus:ring-brand-primary-from focus:border-brand-primary-from transition-all" placeholder="Např. klient spěchá na logo..."></textarea>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Datum vytvoření</label>
+                                    <input v-model="form.created_at" type="date" required class="w-full px-5 py-3.5 bg-gray-50 border-gray-100 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-2 focus:ring-brand-primary-from focus:border-brand-primary-from transition-all">
+                                    <div v-if="form.errors.created_at" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ form.errors.created_at }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Platnost (dní)</label>
+                                    <input v-model.number="form.valid_days" type="number" min="1" max="365" required class="w-full px-5 py-3.5 bg-gray-50 border-gray-100 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-2 focus:ring-brand-primary-from focus:border-brand-primary-from transition-all">
+                                    <div v-if="form.errors.valid_days" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ form.errors.valid_days }}</div>
+                                </div>
+                            </div>
+
                             <button 
                                 @click="submit"
                                 :disabled="form.processing || form.services.length === 0"
@@ -567,6 +580,12 @@ const paginationEnd = computed(() => {
     return end > filteredServices.value.length ? filteredServices.value.length : end
 })
 
+// <input type="date"> needs YYYY-MM-DD in the local timezone, not the UTC ISO string.
+const toDateInputValue = (date) => {
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 const form = useForm({
     customer_name: user?.name || '',
     customer_email: user?.email || '',
@@ -577,6 +596,8 @@ const form = useForm({
     description: '',
     note: '',
     show_vat: false,
+    created_at: toDateInputValue(new Date()),
+    valid_days: 30,
     services: [] // { unique_id, parent_id: null }
 })
 

@@ -38,6 +38,8 @@ class CreateCalculationTool extends Tool
             'show_vat' => 'boolean',
             'company_id' => 'nullable|integer|exists:companies,id',
             'company_employee_id' => 'nullable|integer|exists:company_employees,id',
+            'created_at' => 'nullable|date',
+            'valid_days' => 'nullable|integer|min:1|max:365',
             'items' => 'required|array|min:1',
             'items.*.service_id' => 'required|integer|exists:services,id',
             'items.*.key' => 'nullable|string|max:64',
@@ -160,6 +162,12 @@ class CreateCalculationTool extends Tool
 
             'company_employee_id' => $schema->integer()
                 ->description('ID kontaktní osoby firmy z CRM (nástroj list-companies).'),
+
+            'created_at' => $schema->string()
+                ->description('Datum vytvoření kalkulace ve formátu YYYY-MM-DD. Neuvedeš-li jej, použije se dnešní datum.'),
+
+            'valid_days' => $schema->integer()
+                ->description('Platnost nabídky ve dnech (1–365). Výchozí je 30 dní.'),
 
             'items' => $schema->array()
                 ->description('Položky kalkulace v pořadí, v jakém se mají zobrazit.')

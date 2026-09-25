@@ -68,6 +68,8 @@ class CalculationController extends Controller
             'company_id' => 'nullable|exists:companies,id',
             'company_employee_id' => 'nullable|exists:company_employees,id',
             'description' => 'nullable|string',
+            'created_at' => 'nullable|date',
+            'valid_days' => 'nullable|integer|min:1|max:365',
         ]);
 
         $validated['show_vat'] = $request->boolean('show_vat');
@@ -176,6 +178,8 @@ class CalculationController extends Controller
             'company_id' => 'nullable|exists:companies,id',
             'company_employee_id' => 'nullable|exists:company_employees,id',
             'description' => 'nullable|string',
+            'created_at' => 'required|date',
+            'valid_days' => 'required|integer|min:1|max:365',
         ]);
 
         $validated['show_vat'] = $request->boolean('show_vat');
