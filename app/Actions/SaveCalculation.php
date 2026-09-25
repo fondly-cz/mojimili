@@ -4,6 +4,8 @@ namespace App\Actions;
 
 use App\Models\Calculation;
 use App\Models\Service;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
 class SaveCalculation
@@ -15,6 +17,7 @@ class SaveCalculation
     {
         $calculation = Calculation::create([
             ...$this->attributes($data),
+            ...$this->createdAt($data, now()),
             'user_id' => $userId,
             'total_price' => 0,
             'total_days' => 0,
@@ -30,7 +33,10 @@ class SaveCalculation
      */
     public function update(Calculation $calculation, array $data): Calculation
     {
-        $calculation->update($this->attributes($data));
+        $calculation->update([
+            ...$this->attributes($data),
+            ...$this->createdAt($data, $calculation->created_at),
+        ]);
 
         $calculation->items()->delete();
 
@@ -45,7 +51,7 @@ class SaveCalculation
      */
     private function attributes(array $data): array
     {
-        return [
+        $attributes = [
             'customer_name' => $data['customer_name'],
             'customer_email' => $data['customer_email'],
             'customer_phone' => $data['customer_phone'],
@@ -56,6 +62,28 @@ class SaveCalculation
             'note' => $data['note'] ?? null,
             'show_vat' => (bool) ($data['show_vat'] ?? false),
         ];
+
+        // Callers that don't send a validity (e.g. the MCP tools) keep the current one.
+        if (isset($data['valid_days'])) {
+            $attributes['valid_days'] = (int) $data['valid_days'];
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Only the date of `created_at` is editable – the time of day is taken from $timeFrom.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, Carbon>
+     */
+    private function createdAt(array $data, CarbonInterface $timeFrom): array
+    {
+        if (empty($data['created_at'])) {
+            return [];
+        }
+
+        return ['created_at' => Carbon::parse($data['created_at'])->setTimeFrom($timeFrom)];
     }
 
     /**

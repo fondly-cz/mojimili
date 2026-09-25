@@ -7,6 +7,7 @@ use App\Models\Calculation;
 use App\Models\Service;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Support\Carbon;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -40,6 +41,8 @@ class UpdateCalculationTool extends Tool
             'show_vat' => 'sometimes|boolean',
             'company_id' => 'sometimes|nullable|integer|exists:companies,id',
             'company_employee_id' => 'sometimes|nullable|integer|exists:company_employees,id',
+            'created_at' => 'sometimes|date',
+            'valid_days' => 'sometimes|integer|min:1|max:365',
             'items' => 'sometimes|array|min:1',
             'items.*.service_id' => 'required|integer|exists:services,id',
             'items.*.key' => 'nullable|string|max:64',
@@ -61,7 +64,12 @@ class UpdateCalculationTool extends Tool
         // everything else keeps its current value.
         $attributes = collect($validated)
             ->only(['customer_name', 'customer_email', 'customer_phone', 'customer_company',
-                'company_id', 'company_employee_id', 'description', 'note', 'show_vat']);
+                'company_id', 'company_employee_id', 'description', 'note', 'show_vat', 'valid_days']);
+
+        if (isset($validated['created_at'])) {
+            // Only the date changes – keep the original time of day.
+            $attributes['created_at'] = Carbon::parse($validated['created_at'])->setTimeFrom($calculation->created_at);
+        }
 
         if (array_key_exists('items', $validated)) {
             // Full replacement of the item list – rebuild it the same way create does.
@@ -216,6 +224,12 @@ class UpdateCalculationTool extends Tool
 
             'company_employee_id' => $schema->integer()
                 ->description('ID kontaktní osoby firmy z CRM (nástroj list-companies).'),
+
+            'created_at' => $schema->string()
+                ->description('Datum vytvoření kalkulace ve formátu YYYY-MM-DD.'),
+
+            'valid_days' => $schema->integer()
+                ->description('Platnost nabídky ve dnech (1–365).'),
 
             'items' => $schema->array()
                 ->description('Nové položky kalkulace v pořadí, v jakém se mají zobrazit. Uvedeš-li je, nahradí VŠECHNY dosavadní položky. Chceš-li položky zachovat, item vynech.')

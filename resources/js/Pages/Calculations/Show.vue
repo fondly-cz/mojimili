@@ -86,7 +86,7 @@
                         <div class="text-right">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 font-heading">Detaily</h3>
                             <div class="text-xl font-extrabold text-gray-900 font-heading">{{ formatDate(calculation.created_at) }}</div>
-                            <div class="text-gray-500 font-medium mt-1 italic">Platnost nabídky 30 dní</div>
+                            <div class="text-gray-500 font-medium mt-1 italic">Platnost nabídky {{ calculation.valid_days ?? 30 }} dní</div>
                         </div>
                     </div>
 

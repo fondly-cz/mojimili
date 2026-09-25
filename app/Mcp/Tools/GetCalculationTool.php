@@ -44,6 +44,8 @@ class GetCalculationTool extends Tool
             'note' => $calculation->note,
             'status' => $calculation->status,
             'show_vat' => $calculation->show_vat,
+            'created_at' => $calculation->created_at->toDateString(),
+            'valid_days' => $calculation->valid_days,
             'total_price' => (float) $calculation->total_price,
             'total_days' => $calculation->total_days,
             'public_url' => $calculation->public_url,
