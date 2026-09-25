@@ -6,9 +6,13 @@ use App\Actions\SaveCalculation;
 use App\Mail\CalculationConfirmed;
 use App\Models\Calculation;
 use App\Models\CalculationItem;
+use App\Models\CalculationView;
 use App\Models\Project;
 use App\Models\Service;
+use App\Support\ClientIp;
+use App\Support\UserAgent;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 class CalculationController extends Controller
@@ -79,12 +83,15 @@ class CalculationController extends Controller
             'calculation' => $calculation->load('items'),
             // For the "turn items into a todolist" modal.
             'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'views' => $this->viewLog($calculation),
         ]);
     }
 
-    public function showPublic(string $token)
+    public function showPublic(Request $request, string $token)
     {
         $calculation = Calculation::where('access_token', $token)->firstOrFail();
+
+        $this->logView($request, $calculation);
 
         return inertia('Calculations/Show', [
             'calculation' => $calculation->load('items'),
@@ -144,6 +151,7 @@ class CalculationController extends Controller
         return inertia('Calculations/Edit', [
             'calculation' => $calculation->load('items.service'),
             'services' => Service::where('is_active', true)->get(),
+            'views' => $this->viewLog($calculation),
         ]);
     }
 
@@ -194,5 +202,32 @@ class CalculationController extends Controller
         Calculation::whereIn('id', $validated['ids'])->delete();
 
         return back()->with('success', 'Vybrané kalkulace byly smazány.');
+    }
+
+    private function logView(Request $request, Calculation $calculation): void
+    {
+        // Inertia partial reloads and prefetches are not new visits.
+        if ($request->header('X-Inertia-Partial-Data') || $request->header('Purpose') === 'prefetch') {
+            return;
+        }
+
+        $userAgent = $request->userAgent();
+
+        $calculation->views()->create([
+            'user_id' => $request->user()?->id,
+            'ip_address' => ClientIp::resolve($request),
+            'country' => substr((string) $request->header('CF-IPCountry'), 0, 2) ?: null,
+            'user_agent' => $userAgent,
+            'viewed_at' => now(),
+            ...UserAgent::parse($userAgent),
+        ]);
+    }
+
+    /**
+     * @return Collection<int, CalculationView>
+     */
+    private function viewLog(Calculation $calculation)
+    {
+        return $calculation->views()->with('user:id,name')->latest('viewed_at')->latest('id')->get();
     }
 }

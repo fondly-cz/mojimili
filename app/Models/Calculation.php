@@ -66,6 +66,14 @@ class Calculation extends Model
     }
 
     /**
+     * @return HasMany<CalculationView, $this>
+     */
+    public function views(): HasMany
+    {
+        return $this->hasMany(CalculationView::class);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo

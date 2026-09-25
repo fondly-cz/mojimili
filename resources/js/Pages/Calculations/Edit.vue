@@ -458,6 +458,8 @@
                 </div>
             </div>
         </div>
+
+        <CalculationViewLog :views="views" />
     </Layout>
 </template>
 
@@ -469,11 +471,16 @@ import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import CalculationItemNode from '../../Components/CalculationItemNode.vue'
 import RichEditor from '../../Components/RichEditor.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
+import CalculationViewLog from '../../Components/CalculationViewLog.vue'
 import debounce from 'lodash/debounce'
 
 const props = defineProps({
     calculation: Object,
-    services: Array
+    services: Array,
+    views: {
+        type: Array,
+        default: () => [],
+    },
 })
 
 const isCatalogOpen = ref(true)
