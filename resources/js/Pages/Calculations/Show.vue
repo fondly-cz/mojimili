@@ -200,6 +200,10 @@
             </div>
         </div>
 
+        <div v-if="!is_public" class="max-w-4xl mx-auto">
+            <CalculationViewLog :views="views" />
+        </div>
+
         <CreateTodolistFromCalculationModal
             v-if="!is_public"
             :show="showTodolistModal"
@@ -217,6 +221,7 @@ import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import CalculationItemDisplay from '../../Components/CalculationItemDisplay.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
+import CalculationViewLog from '../../Components/CalculationViewLog.vue'
 import '@toast-ui/editor/dist/toastui-editor-viewer.css'
 
 const props = defineProps({
@@ -226,6 +231,10 @@ const props = defineProps({
         default: false
     },
     projects: {
+        type: Array,
+        default: () => []
+    },
+    views: {
         type: Array,
         default: () => []
     }
