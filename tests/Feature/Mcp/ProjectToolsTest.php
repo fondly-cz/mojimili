@@ -302,6 +302,28 @@ class ProjectToolsTest extends TestCase
         $this->assertSame('1500.00', WorkReport::sole()->hourly_rate);
     }
 
+    public function test_a_work_report_can_be_logged_for_another_person(): void
+    {
+        $karel = User::factory()->create(['name' => 'Karel']);
+        $project = Project::factory()->create(['hourly_rate' => 1200]);
+        $project->userRates()->attach($karel->id, ['hourly_rate' => 250]);
+        $todo = Todo::factory()->forTodolist(Todolist::factory()->forProject($project)->create())->create();
+        WorkReport::factory()->forTodo($todo)->create(['minutes' => 60]);
+
+        CrmServer::actingAs($this->manager())->tool(CreateWorkReportTool::class, [
+            'todo_id' => $todo->id,
+            'minutes' => 15,
+            'user_id' => $karel->id,
+        ])->assertOk()->assertSee('Karel');
+
+        $this->assertSame(2, $todo->workReports()->count());
+        $this->assertSame('250.00', $todo->workReports()->where('user_id', $karel->id)->sole()->hourly_rate);
+
+        CrmServer::actingAs($this->manager())->tool(GetProjectTool::class, ['id' => $project->id])
+            ->assertOk()
+            ->assertSee('"user_name": "Karel"');
+    }
+
     public function test_a_work_report_can_override_the_project_rate(): void
     {
         $project = Project::factory()->create(['hourly_rate' => 1500]);

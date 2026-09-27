@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Models\Project;
 use App\Models\Todo;
 use App\Models\Todolist;
+use App\Models\WorkReport;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -36,7 +37,8 @@ class GetProjectTool extends Tool
         $project = Project::with([
             'company:id,name',
             'todolists.todos.assignee:id,name',
-            'todolists.todos.workReports',
+            'todolists.todos.workReports.user:id,name',
+            'todolists.todos.workReports.invoice:id,number',
         ])->where('id', $validated['id'])->firstOrFail();
 
         return Response::text(collect([
@@ -66,6 +68,17 @@ class GetProjectTool extends Tool
                     'due_date' => $todo->due_date?->toDateString(),
                     'reported_minutes' => $todo->workReports->sum('minutes'),
                     'uninvoiced_minutes' => $todo->workReports->whereNull('invoice_id')->sum('minutes'),
+                    'work_reports' => $todo->workReports->map(fn (WorkReport $report) => [
+                        'id' => $report->id,
+                        'date' => $report->date->toDateString(),
+                        'user_id' => $report->user_id,
+                        'user_name' => $report->user?->name,
+                        'minutes' => $report->minutes,
+                        'hourly_rate' => $report->hourly_rate,
+                        'amount' => $report->amount,
+                        'description' => $report->description,
+                        'invoice_number' => $report->invoice?->number,
+                    ])->all(),
                 ])->all(),
             ])->all(),
         ])->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

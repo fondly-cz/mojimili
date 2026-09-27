@@ -31,24 +31,29 @@ class CreateWorkReportTool extends Tool
             'date' => 'nullable|date',
             'hourly_rate' => 'nullable|numeric|min:0',
             'description' => 'nullable|string|max:2000',
+            'user_id' => 'nullable|integer|exists:users,id',
         ], [
             'todo_id.exists' => 'Úkol s tímto ID neexistuje. ID úkolů zjistíš nástrojem get-project.',
+            'user_id.exists' => 'Uživatel s tímto ID v CRM neexistuje.',
         ]);
 
         $todo = Todo::with('todolist.project')->findOrFail($validated['todo_id']);
         $project = $todo->todolist->project;
+        // A todo collects reports from any number of people; default to the caller.
+        $workerId = $validated['user_id'] ?? $user->id;
 
         $report = $todo->workReports()->create([
-            'user_id' => $user->id,
+            'user_id' => $workerId,
             'date' => $validated['date'] ?? now()->toDateString(),
             'minutes' => $validated['minutes'],
-            'hourly_rate' => $validated['hourly_rate'] ?? $project->rateFor($user->id),
+            'hourly_rate' => $validated['hourly_rate'] ?? $project->rateFor($workerId),
             'description' => $validated['description'] ?? null,
-        ]);
+        ])->load('user:id,name');
 
         return Response::text(sprintf(
-            "K úkolu \"%s\" bylo vykázáno %d min (%s) za %s Kč/h = %s Kč bez DPH (work_report_id %d).\nDetail v CRM: %s",
+            "K úkolu \"%s\" vykázal(a) %s %d min (%s) za %s Kč/h = %s Kč bez DPH (work_report_id %d).\nDetail v CRM: %s",
             $todo->name,
+            $report->user?->name ?? 'neznámý uživatel',
             $report->minutes,
             $report->date->toDateString(),
             $report->hourly_rate,
@@ -80,6 +85,9 @@ class CreateWorkReportTool extends Tool
 
             'description' => $schema->string()
                 ->description('Popis odvedené práce.'),
+
+            'user_id' => $schema->integer()
+                ->description('ID uživatele CRM, který práci odvedl. Výchozí je přihlášený uživatel. K jednomu úkolu může vykazovat víc lidí a každý libovolný počet výkazů.'),
         ];
     }
 }
