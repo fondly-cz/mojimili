@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Models\Project;
 use App\Models\Todo;
+use App\Models\TodoComment;
 use App\Models\Todolist;
 use App\Models\WorkReport;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -40,6 +41,8 @@ class GetProjectTool extends Tool
             'todolists.todos.assignee:id,name',
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number',
+            'todolists.todos.comments.user:id,name',
+            'todolists.todos.comments.attachments',
         ])->where('id', $validated['id'])->firstOrFail();
 
         return Response::text(collect([
@@ -72,6 +75,15 @@ class GetProjectTool extends Tool
                     'assigned_user_id' => $todo->assigned_user_id,
                     'assigned_user_name' => $todo->assignee?->name,
                     'due_date' => $todo->due_date?->toDateString(),
+                    'recurrence' => $todo->recurrence_frequency ? [
+                        'frequency' => $todo->recurrence_frequency->value,
+                        'interval' => $todo->recurrence_interval,
+                        'working_days_only' => $todo->recurrence_working_days_only,
+                        'ends_on' => $todo->recurrence_ends_on?->toDateString(),
+                        'remaining' => $todo->recurrence_remaining,
+                        'copy_description' => $todo->recurrence_copy_description,
+                        'label' => $todo->recurrenceLabel(),
+                    ] : null,
                     'reported_minutes' => $todo->workReports->sum('minutes'),
                     'uninvoiced_minutes' => $todo->workReports->whereNull('invoice_id')->sum('minutes'),
                     'work_reports' => $todo->workReports->map(fn (WorkReport $report) => [
@@ -86,6 +98,17 @@ class GetProjectTool extends Tool
                         'amount' => $report->amount,
                         'description' => $report->description,
                         'invoice_number' => $report->invoice?->number,
+                    ])->all(),
+                    'comments' => $todo->comments->map(fn (TodoComment $comment) => [
+                        'id' => $comment->id,
+                        'author' => $comment->user?->name ?? $comment->author_name,
+                        'created_at' => $comment->created_at->format('Y-m-d H:i'),
+                        'body' => $comment->body,
+                        'attachments' => $comment->attachments->map(fn ($attachment) => [
+                            'name' => $attachment->original_name,
+                            'size' => $attachment->size,
+                            'url' => $attachment->url,
+                        ])->all(),
                     ])->all(),
                 ])->all(),
             ])->all(),

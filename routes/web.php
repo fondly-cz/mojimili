@@ -17,6 +17,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\TodoCommentController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\TodolistController;
 use App\Http\Controllers\UserController;
@@ -56,6 +57,11 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     Route::post('todos/{todo}/work-reports', [WorkReportController::class, 'store'])->name('todos.work-reports.store');
     Route::patch('work-reports/{workReport}', [WorkReportController::class, 'update'])->name('work-reports.update');
     Route::delete('work-reports/{workReport}', [WorkReportController::class, 'destroy'])->name('work-reports.destroy');
+
+    Route::post('todos/{todo}/comments', [TodoCommentController::class, 'store'])->name('todos.comments.store');
+    Route::patch('todo-comments/{comment}', [TodoCommentController::class, 'update'])->name('todo-comments.update');
+    Route::delete('todo-comments/{comment}', [TodoCommentController::class, 'destroy'])->name('todo-comments.destroy');
+    Route::get('todo-comment-attachments/{attachment}', [TodoCommentController::class, 'attachment'])->name('todo-comment-attachments.show');
 
     Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
     Route::resource('invoices', InvoiceController::class)->only(['index', 'store', 'show', 'update', 'destroy']);

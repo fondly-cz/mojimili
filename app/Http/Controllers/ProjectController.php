@@ -68,6 +68,8 @@ class ProjectController extends Controller
             'todolists.todos.assignee:id,name',
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number,url',
+            'todolists.todos.comments.user:id,name',
+            'todolists.todos.comments.attachments',
             'userRates:id,name',
         ]);
 
@@ -131,7 +133,8 @@ class ProjectController extends Controller
             'ids.*' => 'exists:projects,id',
         ]);
 
-        Project::whereIn('id', $validated['ids'])->delete();
+        // Model deletes, so each project also removes its todos' attachment files.
+        Project::whereIn('id', $validated['ids'])->get()->each->delete();
 
         return back()->with('success', 'Vybrané projekty byly smazány.');
     }

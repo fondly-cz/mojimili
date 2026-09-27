@@ -44,7 +44,10 @@ class TodoController extends Controller
             'assigned_user_id' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
             'sort_order' => 'sometimes|integer|min:0',
+            ...Todo::recurrenceRules(),
         ]);
+
+        $validated = $todo->prepareRecurrence($validated);
 
         if ($request->has('is_done')) {
             $isDone = $request->boolean('is_done');
