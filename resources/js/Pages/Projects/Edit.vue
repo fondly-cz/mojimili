@@ -95,6 +95,29 @@
                     </div>
                 </div>
 
+                <div class="px-10 pb-10 space-y-6 relative z-10">
+                    <div class="border-b border-gray-50 pb-4">
+                        <h2 class="text-xl font-black text-gray-900 font-heading uppercase tracking-widest">Sazby lidí v projektu</h2>
+                        <p class="mt-2 text-xs text-gray-400 font-semibold">Má přednost před výchozí sazbou projektu. Prázdné pole = použije se sazba projektu.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div v-for="(rate, index) in form.user_rates" :key="rate.user_id" class="flex flex-wrap items-center gap-4">
+                            <label :for="`rate-${rate.user_id}`" class="flex-1 text-sm font-bold text-gray-700 truncate">{{ userName(rate.user_id) }}</label>
+                            <input
+                                :id="`rate-${rate.user_id}`"
+                                v-model="rate.hourly_rate"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                :placeholder="form.hourly_rate || '—'"
+                                class="block w-40 px-4 py-2.5 bg-gray-50 border-gray-50 rounded-xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-brand-primary-from focus:border-brand-primary-from transition-all"
+                            >
+                            <p v-if="form.errors[`user_rates.${index}.hourly_rate`]" class="w-full text-xs text-red-500 font-bold">{{ form.errors[`user_rates.${index}.hourly_rate`] }}</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="px-10 py-6 bg-gray-50/50 border-t border-gray-50 flex justify-end gap-3">
                     <button
                         type="submit"
@@ -117,7 +140,11 @@ import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 const props = defineProps({
     project: Object,
     companies: Array,
+    users: Array,
 })
+
+const userRate = (userId) => props.project.user_rates?.find(u => u.id === userId)?.pivot.hourly_rate ?? ''
+const userName = (userId) => props.users.find(u => u.id === userId)?.name
 
 const form = useForm({
     name: props.project.name,
@@ -125,6 +152,7 @@ const form = useForm({
     company_id: props.project.company_id || '',
     status: props.project.status,
     hourly_rate: props.project.hourly_rate ?? '',
+    user_rates: props.users.map(user => ({ user_id: user.id, hourly_rate: userRate(user.id) })),
 })
 
 const submit = () => {

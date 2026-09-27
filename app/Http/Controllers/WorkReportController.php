@@ -12,11 +12,13 @@ class WorkReportController extends Controller
     {
         $validated = $request->validate($this->rules());
 
+        $userId = $validated['user_id'] ?? auth()->id();
+
         $todo->workReports()->create([
             ...$validated,
-            'user_id' => $validated['user_id'] ?? auth()->id(),
-            // No explicit rate means the project's default one.
-            'hourly_rate' => $validated['hourly_rate'] ?? $todo->todolist->project->hourly_rate ?? 0,
+            'user_id' => $userId,
+            // No explicit rate means the person's rate in the project, then the project's default.
+            'hourly_rate' => $validated['hourly_rate'] ?? $todo->todolist->project->rateFor($userId),
         ]);
 
         return back()->with('success', 'Čas byl vykázán.');
@@ -31,7 +33,9 @@ class WorkReportController extends Controller
         $validated = $request->validate($this->rules(partial: true));
 
         if (array_key_exists('hourly_rate', $validated) && $validated['hourly_rate'] === null) {
-            $validated['hourly_rate'] = $workReport->todo->todolist->project->hourly_rate ?? 0;
+            $validated['hourly_rate'] = $workReport->todo->todolist->project->rateFor(
+                $validated['user_id'] ?? $workReport->user_id
+            );
         }
 
         $workReport->update($validated);

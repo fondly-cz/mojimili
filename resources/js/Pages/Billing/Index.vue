@@ -189,8 +189,13 @@
         <Modal :show="create.show" title="Vytvořit fakturu" @close="create.show = false">
             <template #content>
                 <p class="mb-6 text-xs font-bold text-gray-400">
-                    {{ selectedIds.length }} výkazů · {{ formatMinutes(sumMinutes(selectedReports)) }} · {{ formatCurrency(sumAmount(selectedReports)) }} bez DPH
+                    {{ selectedIds.length }} výkazů · {{ formatMinutes(sumMinutes(selectedReports)) }} · {{ formatCurrency(invoicedTotal(invoiceForm.hourly_rate)) }} bez DPH
                 </p>
+                <div class="mb-6">
+                    <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Sazba pro všechny vybrané výkazy (Kč/h)</label>
+                    <input v-model="invoiceForm.hourly_rate" type="number" min="0" step="0.01" :class="selectClass" placeholder="Ponechat sazby výkazů">
+                    <p v-if="invoiceForm.errors.hourly_rate" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ invoiceForm.errors.hourly_rate }}</p>
+                </div>
                 <InvoiceFields
                     v-model:number="invoiceForm.number"
                     v-model:issued-at="invoiceForm.issued_at"
@@ -224,6 +229,12 @@
                     </option>
                 </select>
                 <p v-if="attachForm.errors.work_report_ids" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ attachForm.errors.work_report_ids }}</p>
+                <label class="mt-6 block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Sazba pro všechny vybrané výkazy (Kč/h)</label>
+                <input v-model="attachForm.hourly_rate" type="number" min="0" step="0.01" :class="selectClass" placeholder="Ponechat sazby výkazů">
+                <p v-if="attachForm.errors.hourly_rate" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ attachForm.errors.hourly_rate }}</p>
+                <p class="mt-4 text-xs font-bold text-gray-400">
+                    {{ selectedIds.length }} výkazů · {{ formatMinutes(sumMinutes(selectedReports)) }} · {{ formatCurrency(invoicedTotal(attachForm.hourly_rate)) }} bez DPH
+                </p>
             </template>
             <template #footer>
                 <button
@@ -333,8 +344,14 @@ const invoiceForm = useForm({
     url: '',
     issued_at: new Date().toISOString().substring(0, 10),
     note: '',
+    hourly_rate: '',
     work_report_ids: [],
 })
+
+// Total of the selection, as it will be invoiced with an optional override rate.
+const invoicedTotal = (rate) => rate === '' || rate === null
+    ? sumAmount(selectedReports.value)
+    : Math.round(sumMinutes(selectedReports.value) / 60 * Number(rate) * 100) / 100
 
 const openCreate = () => {
     invoiceForm.clearErrors()
@@ -353,7 +370,7 @@ const submitCreate = () => {
 
 // --- Attach to existing invoice ---
 const attach = reactive({ show: false })
-const attachForm = useForm({ invoice_id: null, work_report_ids: [] })
+const attachForm = useForm({ invoice_id: null, hourly_rate: '', work_report_ids: [] })
 
 const submitAttach = () => {
     attachForm.work_report_ids = selectedIds.value

@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('create-work-report')]
 #[Title('Vykázat čas')]
-#[Description('Vykáže odpracovaný čas k úkolu. Neuvedeš-li hodinovou sazbu, použije se výchozí sazba projektu. ID úkolů zjistíš nástrojem get-project.')]
+#[Description('Vykáže odpracovaný čas k úkolu. Neuvedeš-li hodinovou sazbu, použije se tvoje sazba v projektu, případně výchozí sazba projektu. ID úkolů zjistíš nástrojem get-project.')]
 class CreateWorkReportTool extends Tool
 {
     use InteractsWithCrmUser;
@@ -42,7 +42,7 @@ class CreateWorkReportTool extends Tool
             'user_id' => $user->id,
             'date' => $validated['date'] ?? now()->toDateString(),
             'minutes' => $validated['minutes'],
-            'hourly_rate' => $validated['hourly_rate'] ?? $project->hourly_rate ?? 0,
+            'hourly_rate' => $validated['hourly_rate'] ?? $project->rateFor($user->id),
             'description' => $validated['description'] ?? null,
         ]);
 
@@ -76,7 +76,7 @@ class CreateWorkReportTool extends Tool
                 ->description('Den, kdy se pracovalo, ve formátu YYYY-MM-DD. Výchozí je dnešek.'),
 
             'hourly_rate' => $schema->number()
-                ->description('Vlastní hodinová sazba výkazu v Kč bez DPH. Výchozí je sazba projektu.'),
+                ->description('Vlastní hodinová sazba výkazu v Kč bez DPH. Výchozí je tvoje sazba v projektu, jinak sazba projektu.'),
 
             'description' => $schema->string()
                 ->description('Popis odvedené práce.'),

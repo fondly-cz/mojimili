@@ -74,7 +74,7 @@
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Sazba Kč/h</label>
-                    <input v-model="form.hourly_rate" type="number" min="0" step="0.01" :placeholder="defaultRate ?? '0'" :class="inputClass">
+                    <input v-model="form.hourly_rate" type="number" min="0" step="0.01" :placeholder="rateFor(form.user_id)" :class="inputClass">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Kdo</label>
@@ -124,7 +124,11 @@ const props = defineProps({
     todo: Object,
     users: Array,
     defaultRate: [String, Number],
+    userRates: { type: Object, default: () => ({}) },
 })
+
+// Mirrors Project::rateFor(): the person's rate in the project, then the project default.
+const rateFor = (userId) => props.userRates[userId] ?? props.defaultRate ?? '0'
 
 const page = usePage()
 

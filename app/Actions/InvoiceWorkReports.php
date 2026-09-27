@@ -14,14 +14,15 @@ class InvoiceWorkReports
      * only, so the whole batch is rejected if any of them is already invoiced.
      *
      * @param  array<int, int>  $workReportIds
+     * @param  string|null  $hourlyRate  When set, overrides the rate of every attached report.
      *
      * @throws ValidationException
      */
-    public function handle(Invoice $invoice, array $workReportIds): int
+    public function handle(Invoice $invoice, array $workReportIds, ?string $hourlyRate = null): int
     {
         $workReportIds = array_values(array_unique(array_map('intval', $workReportIds)));
 
-        return DB::transaction(function () use ($invoice, $workReportIds) {
+        return DB::transaction(function () use ($invoice, $workReportIds, $hourlyRate) {
             $reports = WorkReport::whereIn('id', $workReportIds)->lockForUpdate()->get(['id', 'invoice_id']);
 
             if ($reports->count() !== count($workReportIds)) {
@@ -36,7 +37,10 @@ class InvoiceWorkReports
                 ]);
             }
 
-            return WorkReport::whereIn('id', $workReportIds)->update(['invoice_id' => $invoice->id]);
+            return WorkReport::whereIn('id', $workReportIds)->update(array_filter([
+                'invoice_id' => $invoice->id,
+                'hourly_rate' => $hourlyRate,
+            ], fn ($value) => $value !== null));
         });
     }
 }

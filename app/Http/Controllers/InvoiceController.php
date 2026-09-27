@@ -40,15 +40,20 @@ class InvoiceController extends Controller
             ...$this->rules(),
             'work_report_ids' => 'required|array|min:1',
             'work_report_ids.*' => 'integer',
+            'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ]);
 
         $invoice = DB::transaction(function () use ($validated, $invoiceWorkReports) {
             $invoice = Invoice::create([
-                ...collect($validated)->except('work_report_ids')->all(),
+                ...collect($validated)->except(['work_report_ids', 'hourly_rate'])->all(),
                 'user_id' => auth()->id(),
             ]);
 
-            $invoiceWorkReports->handle($invoice, $validated['work_report_ids']);
+            $invoiceWorkReports->handle(
+                $invoice,
+                $validated['work_report_ids'],
+                isset($validated['hourly_rate']) ? (string) $validated['hourly_rate'] : null,
+            );
 
             return $invoice;
         });
@@ -96,9 +101,14 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'work_report_ids' => 'required|array|min:1',
             'work_report_ids.*' => 'integer',
+            'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ]);
 
-        $invoiceWorkReports->handle($invoice, $validated['work_report_ids']);
+        $invoiceWorkReports->handle(
+            $invoice,
+            $validated['work_report_ids'],
+            isset($validated['hourly_rate']) ? (string) $validated['hourly_rate'] : null,
+        );
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', 'Výkazy byly přidány do faktury.');

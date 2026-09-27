@@ -68,6 +68,76 @@ class WorkReportInvoicingTest extends TestCase
         $this->assertSame('2000.00', WorkReport::sole()->hourly_rate);
     }
 
+    public function test_a_persons_project_rate_beats_the_project_default(): void
+    {
+        $user = $this->manager();
+        $project = Project::factory()->create(['hourly_rate' => 1200]);
+        $project->userRates()->attach($user->id, ['hourly_rate' => 250]);
+        $todo = $this->todoInProject($project);
+
+        $this->actingAs($user)
+            ->post("/todos/{$todo->id}/work-reports", ['date' => '2026-09-20', 'minutes' => 15])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('250.00', WorkReport::sole()->hourly_rate);
+    }
+
+    public function test_person_rates_are_saved_with_the_project(): void
+    {
+        $karel = User::factory()->create();
+        $martin = User::factory()->create();
+        $project = Project::factory()->create();
+        $project->userRates()->attach($martin->id, ['hourly_rate' => 900]);
+
+        $this->actingAs($this->manager())
+            ->put("/projects/{$project->id}", [
+                'name' => $project->name,
+                'hourly_rate' => 1200,
+                'user_rates' => [
+                    ['user_id' => $karel->id, 'hourly_rate' => 250],
+                    ['user_id' => $martin->id, 'hourly_rate' => ''],
+                ],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('250.00', $project->rateFor($karel->id));
+        // Clearing a person's rate falls back to the project default.
+        $this->assertSame('1200.00', $project->fresh()->rateFor($martin->id));
+    }
+
+    public function test_invoicing_can_set_one_rate_for_all_selected_reports(): void
+    {
+        $first = WorkReport::factory()->create(['minutes' => 60, 'hourly_rate' => 0]);
+        $second = WorkReport::factory()->create(['minutes' => 30, 'hourly_rate' => 500]);
+        $untouched = WorkReport::factory()->create(['hourly_rate' => 500]);
+
+        $this->actingAs($this->manager())
+            ->post('/invoices', [
+                'number' => '2026-08-podrazil',
+                'hourly_rate' => 1200,
+                'work_report_ids' => [$first->id, $second->id],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('1200.00', $first->fresh()->hourly_rate);
+        $this->assertSame('1200.00', $second->fresh()->hourly_rate);
+        $this->assertSame('500.00', $untouched->fresh()->hourly_rate);
+        $this->assertNull($untouched->fresh()->invoice_id);
+    }
+
+    public function test_invoicing_without_a_rate_keeps_report_rates(): void
+    {
+        $invoice = Invoice::factory()->create();
+        $report = WorkReport::factory()->create(['hourly_rate' => 750]);
+
+        $this->actingAs($this->manager())
+            ->post("/invoices/{$invoice->id}/attach", ['work_report_ids' => [$report->id], 'hourly_rate' => ''])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('750.00', $report->fresh()->hourly_rate);
+        $this->assertSame($invoice->id, $report->fresh()->invoice_id);
+    }
+
     public function test_changing_the_project_rate_keeps_existing_reports(): void
     {
         $project = Project::factory()->create(['hourly_rate' => 1000]);

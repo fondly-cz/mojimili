@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
@@ -67,6 +68,7 @@ class ProjectController extends Controller
             'todolists.todos.assignee:id,name',
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number,url',
+            'userRates:id,name',
         ]);
 
         return inertia('Projects/Show', [
@@ -84,16 +86,32 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         return inertia('Projects/Edit', [
-            'project' => $project->load('company'),
+            'project' => $project->load(['company', 'userRates:id,name']),
+            'users' => User::orderBy('name')->get(['id', 'name']),
             'companies' => Company::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function update(Request $request, Project $project)
     {
-        $validated = $request->validate($this->rules());
+        $validated = $request->validate([
+            ...$this->rules(),
+            'user_rates' => 'sometimes|array',
+            'user_rates.*.user_id' => 'required|distinct|exists:users,id',
+            'user_rates.*.hourly_rate' => 'nullable|numeric|min:0|max:99999999',
+        ]);
 
-        $project->update($validated);
+        DB::transaction(function () use ($project, $validated) {
+            $project->update(collect($validated)->except('user_rates')->all());
+
+            if (array_key_exists('user_rates', $validated)) {
+                // An empty rate removes the person's override.
+                $project->userRates()->sync(collect($validated['user_rates'])
+                    ->filter(fn ($rate) => $rate['hourly_rate'] !== null && $rate['hourly_rate'] !== '')
+                    ->mapWithKeys(fn ($rate) => [$rate['user_id'] => ['hourly_rate' => $rate['hourly_rate']]])
+                    ->all());
+            }
+        });
 
         return redirect()->route('projects.show', $project)
             ->with('success', 'Projekt byl upraven.');

@@ -152,6 +152,7 @@
                             :all-todos="list.todos"
                             :users="users"
                             :default-rate="project.hourly_rate"
+                            :user-rates="userRates"
                             @toggle="toggleTodo"
                             @assign="assignTodo"
                             @due-date="setDueDate"
@@ -297,6 +298,10 @@ const allTodos = computed(() => props.project.todolists.flatMap(l => l.todos))
 const totalCount = computed(() => allTodos.value.length)
 const doneCount = computed(() => allTodos.value.filter(t => t.is_done).length)
 const totalDays = computed(() => allTodos.value.reduce((sum, t) => sum + (t.days || 0), 0))
+
+const userRates = computed(() => Object.fromEntries(
+    (props.project.user_rates || []).map(user => [user.id, user.pivot.hourly_rate])
+))
 
 const billing = computed(() => {
     const reports = allTodos.value.flatMap(t => t.work_reports || [])
