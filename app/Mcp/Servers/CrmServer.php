@@ -4,21 +4,30 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\CreateCalculationTool;
 use App\Mcp\Tools\CreateCompanyTool;
+use App\Mcp\Tools\CreateInvoiceTool;
 use App\Mcp\Tools\CreateProjectTool;
 use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
 use App\Mcp\Tools\CreateWorkReportTool;
+use App\Mcp\Tools\DeleteInvoiceTool;
+use App\Mcp\Tools\DeleteWorkReportTool;
 use App\Mcp\Tools\GetCalculationTool;
+use App\Mcp\Tools\GetInvoiceTool;
 use App\Mcp\Tools\GetProjectTool;
 use App\Mcp\Tools\ListCalculationsTool;
 use App\Mcp\Tools\ListCompaniesTool;
+use App\Mcp\Tools\ListInvoicesTool;
 use App\Mcp\Tools\ListProjectsTool;
 use App\Mcp\Tools\ListServicesTool;
+use App\Mcp\Tools\ListUninvoicedWorkReportsTool;
+use App\Mcp\Tools\ListUsersTool;
 use App\Mcp\Tools\UpdateCalculationTool;
+use App\Mcp\Tools\UpdateInvoiceTool;
 use App\Mcp\Tools\UpdateProjectTool;
 use App\Mcp\Tools\UpdateServiceTool;
 use App\Mcp\Tools\UpdateTodoTool;
+use App\Mcp\Tools\UpdateWorkReportTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -54,9 +63,19 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
 3. Ruční seznam úkolů založ nástrojem create-todolist (úkoly zanoříš stejně přes `key` a `parent_key`).
 4. Detail projektu i ID jednotlivých úkolů získáš nástrojem get-project, jeden úkol pak upravíš
    nástrojem update-todo (dokončení, přiřazení řešitele, termín).
-5. Odpracovaný čas k úkolu vykážeš nástrojem create-work-report. Projekt může mít výchozí hodinovou
-   sazbu (hourly_rate u create-project/update-project), každý výkaz ale může mít vlastní sazbu.
-   Fakturace výkazů probíhá v CRM na stránce K fakturaci.
+5. Odpracovaný čas k úkolu vykážeš nástrojem create-work-report (upravíš update-work-report, smažeš
+   delete-work-report). K jednomu úkolu může vykazovat víc lidí – ID osob zjistíš nástrojem list-users.
+   Sazba nového výkazu: vlastní sazba výkazu, jinak sazba osoby v projektu (user_rates u update-project),
+   jinak výchozí sazba projektu (hourly_rate u create-project/update-project).
+
+Fakturace (CRM fakturu nevystavuje, jen eviduje její číslo a odkaz a označí výkazy jako vyfakturované):
+1. Nevyfakturované výkazy najdeš nástrojem list-uninvoiced-work-reports (filtr podle projektu, firmy,
+   osoby a období; vrací i součty).
+2. Fakturu zaeviduj nástrojem create-invoice s ID výkazů. Jedna faktura smí obsahovat výkazy z více projektů
+   i firem, každý výkaz ale smí být jen v jedné faktuře. Volitelná hromadná hourly_rate přepíše sazbu výkazů.
+3. Faktury vypíšeš nástrojem list-invoices, detail s výkazy get-invoice. Výkazy do faktury přidáš nebo z ní
+   odebereš nástrojem update-invoice, delete-invoice fakturu smaže a výkazy vrátí k fakturaci.
+   Vyfakturovaný výkaz nelze upravit ani smazat, dokud ho z faktury neodebereš.
 TEXT)]
 class CrmServer extends Server
 {
@@ -83,5 +102,14 @@ class CrmServer extends Server
         CreateTodolistFromCalculationTool::class,
         UpdateTodoTool::class,
         CreateWorkReportTool::class,
+        UpdateWorkReportTool::class,
+        DeleteWorkReportTool::class,
+        ListUsersTool::class,
+        ListUninvoicedWorkReportsTool::class,
+        ListInvoicesTool::class,
+        GetInvoiceTool::class,
+        CreateInvoiceTool::class,
+        UpdateInvoiceTool::class,
+        DeleteInvoiceTool::class,
     ];
 }

@@ -141,7 +141,10 @@
                                         {{ report.todo.todolist.name }}<span v-if="report.description"> · {{ report.description }}</span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">{{ formatDate(report.date) }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    {{ formatDate(report.date) }}
+                                    <span v-if="report.started_at" class="block text-xs text-gray-400">{{ formatTimeRange(report) }}</span>
+                                </td>
                                 <td class="px-4 py-4 whitespace-nowrap">{{ report.user?.name || '—' }}</td>
                                 <td class="px-4 py-4 text-right whitespace-nowrap">{{ formatMinutes(report.minutes) }}</td>
                                 <td class="px-4 py-4 text-right whitespace-nowrap">{{ formatCurrency(report.hourly_rate) }}/h</td>
@@ -259,7 +262,7 @@ import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import Modal from '../../Components/Modal.vue'
 import InvoiceFields from '../../Components/InvoiceFields.vue'
-import { formatCurrency, formatDate, formatMinutes, reportAmount } from '../../utils/billing'
+import { formatCurrency, formatDate, formatMinutes, formatTimeRange, reportAmount } from '../../utils/billing'
 
 const props = defineProps({
     reports: Array,

@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Models\Project;
 use App\Models\Todo;
 use App\Models\Todolist;
+use App\Models\WorkReport;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -35,8 +36,10 @@ class GetProjectTool extends Tool
 
         $project = Project::with([
             'company:id,name',
+            'userRates:id,name',
             'todolists.todos.assignee:id,name',
-            'todolists.todos.workReports',
+            'todolists.todos.workReports.user:id,name',
+            'todolists.todos.workReports.invoice:id,number',
         ])->where('id', $validated['id'])->firstOrFail();
 
         return Response::text(collect([
@@ -45,6 +48,11 @@ class GetProjectTool extends Tool
             'description' => $project->description,
             'status' => $project->status,
             'hourly_rate' => $project->hourly_rate,
+            'user_rates' => $project->userRates->map(fn ($user) => [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'hourly_rate' => $user->pivot->hourly_rate,
+            ])->all(),
             'company_id' => $project->company_id,
             'company_name' => $project->company?->name,
             'url' => route('projects.show', $project),
@@ -66,6 +74,19 @@ class GetProjectTool extends Tool
                     'due_date' => $todo->due_date?->toDateString(),
                     'reported_minutes' => $todo->workReports->sum('minutes'),
                     'uninvoiced_minutes' => $todo->workReports->whereNull('invoice_id')->sum('minutes'),
+                    'work_reports' => $todo->workReports->map(fn (WorkReport $report) => [
+                        'id' => $report->id,
+                        'date' => $report->date->toDateString(),
+                        'started_at' => $report->started_at?->format('Y-m-d H:i'),
+                        'ended_at' => $report->ended_at?->format('Y-m-d H:i'),
+                        'user_id' => $report->user_id,
+                        'user_name' => $report->user?->name,
+                        'minutes' => $report->minutes,
+                        'hourly_rate' => $report->hourly_rate,
+                        'amount' => $report->amount,
+                        'description' => $report->description,
+                        'invoice_number' => $report->invoice?->number,
+                    ])->all(),
                 ])->all(),
             ])->all(),
         ])->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

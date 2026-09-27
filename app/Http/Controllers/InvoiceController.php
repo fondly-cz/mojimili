@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Actions\InvoiceWorkReports;
 use App\Models\Invoice;
-use App\Models\WorkReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,10 +12,7 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         $invoices = Invoice::query()
-            ->withCount('workReports')
-            ->withSum('workReports as total_minutes', 'minutes')
-            ->addSelect(['total_amount' => WorkReport::selectRaw('coalesce(sum(minutes * hourly_rate / 60), 0)')
-                ->whereColumn('invoice_id', 'invoices.id')])
+            ->withTotals()
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('number', 'like', "%{$search}%")

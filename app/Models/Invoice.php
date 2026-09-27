@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\InvoiceFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,5 +34,18 @@ class Invoice extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Adds work_reports_count, total_minutes and total_amount (CZK excl. VAT).
+     *
+     * @param  Builder<Invoice>  $query
+     */
+    public function scopeWithTotals(Builder $query): void
+    {
+        $query->withCount('workReports')
+            ->withSum('workReports as total_minutes', 'minutes')
+            ->addSelect(['total_amount' => WorkReport::selectRaw('coalesce(sum(minutes * hourly_rate / 60), 0)')
+                ->whereColumn('invoice_id', 'invoices.id')]);
     }
 }

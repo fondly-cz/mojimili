@@ -53,6 +53,28 @@ class WorkReportInvoicingTest extends TestCase
         $this->assertSame(1800.0, $report->amount);
     }
 
+    public function test_several_people_can_log_several_reports_on_one_todo(): void
+    {
+        $martin = $this->manager();
+        $karel = User::factory()->create();
+        $project = Project::factory()->create(['hourly_rate' => 1200]);
+        $project->userRates()->attach($karel->id, ['hourly_rate' => 250]);
+        $todo = $this->todoInProject($project);
+
+        $this->actingAs($martin)->post("/todos/{$todo->id}/work-reports", ['date' => '2026-09-01', 'minutes' => 60]);
+        $this->actingAs($martin)->post("/todos/{$todo->id}/work-reports", ['date' => '2026-09-02', 'minutes' => 30]);
+        $this->actingAs($martin)->post("/todos/{$todo->id}/work-reports", [
+            'date' => '2026-09-02',
+            'minutes' => 15,
+            'user_id' => $karel->id,
+        ])->assertSessionHasNoErrors();
+
+        $reports = $todo->workReports()->get();
+        $this->assertCount(3, $reports);
+        $this->assertSame([1200.0, 600.0], $reports->where('user_id', $martin->id)->pluck('amount')->values()->all());
+        $this->assertSame('250.00', $reports->firstWhere('user_id', $karel->id)->hourly_rate);
+    }
+
     public function test_a_work_report_can_have_its_own_rate(): void
     {
         $todo = $this->todoInProject(Project::factory()->create(['hourly_rate' => 1200]));

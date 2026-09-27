@@ -34,7 +34,10 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <tr v-for="report in reports" :key="report.id" class="font-semibold text-gray-600">
-                            <td class="py-2 pr-3 whitespace-nowrap">{{ formatDate(report.date) }}</td>
+                            <td class="py-2 pr-3 whitespace-nowrap">
+                                {{ formatDate(report.date) }}
+                                <span v-if="report.started_at" class="block text-[10px] text-gray-400">{{ formatTimeRange(report) }}</span>
+                            </td>
                             <td class="py-2 pr-3 whitespace-nowrap">{{ report.user?.name || '—' }}</td>
                             <td class="py-2 pr-3 text-gray-400">{{ report.description || '' }}</td>
                             <td class="py-2 pr-3 text-right whitespace-nowrap">{{ formatMinutes(report.minutes) }}</td>
@@ -68,12 +71,20 @@
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Datum</label>
                     <input v-model="form.date" type="date" required :class="inputClass">
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Čas</label>
-                    <input v-model="duration" type="text" required placeholder="1:30 nebo 90" :class="inputClass">
+                <div class="md:col-span-1">
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Od</label>
+                    <input v-model="timeFrom" @input="onRangeInput" type="time" :class="inputClass">
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Sazba Kč/h</label>
+                <div class="md:col-span-1">
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Do</label>
+                    <input v-model="timeTo" @input="onRangeInput" type="time" :class="inputClass">
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Čas</label>
+                    <input v-model="duration" @input="onDurationInput" type="text" required placeholder="1:30" :class="inputClass">
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Kč/h</label>
                     <input v-model="form.hourly_rate" type="number" min="0" step="0.01" :placeholder="rateFor(form.user_id)" :class="inputClass">
                 </div>
                 <div class="md:col-span-2">
@@ -118,7 +129,7 @@
 import { computed, ref } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import ConfirmModal from './ConfirmModal.vue'
-import { formatCurrency, formatDate, formatMinutes, parseDuration, reportAmount } from '../utils/billing'
+import { addMinutesToTime, formatClock, formatCurrency, formatDate, formatMinutes, formatTimeRange, minutesBetween, parseDuration, reportAmount } from '../utils/billing'
 
 const props = defineProps({
     todo: Object,
@@ -153,12 +164,34 @@ const billingState = computed(() => {
 
 const today = () => new Date().toISOString().substring(0, 10)
 
+const nextDay = (date) => {
+    const day = new Date(`${date}T00:00:00Z`)
+    day.setUTCDate(day.getUTCDate() + 1)
+    return day.toISOString().substring(0, 10)
+}
+
 const editingId = ref(null)
 const duration = ref('')
 const durationError = ref('')
+// Optional from–to range ("HH:MM"); it keeps the duration in sync both ways.
+const timeFrom = ref('')
+const timeTo = ref('')
+
+const onRangeInput = () => {
+    const minutes = minutesBetween(timeFrom.value, timeTo.value)
+    if (minutes) duration.value = formatClock(minutes)
+}
+
+const onDurationInput = () => {
+    const minutes = parseDuration(duration.value)
+    if (minutes && timeFrom.value) timeTo.value = addMinutesToTime(timeFrom.value, minutes)
+}
+
 const form = useForm({
     date: today(),
     minutes: null,
+    started_at: null,
+    ended_at: null,
     hourly_rate: '',
     description: '',
     user_id: page.props.auth?.user?.id ?? null,
@@ -170,6 +203,8 @@ const resetForm = () => {
     editingId.value = null
     duration.value = ''
     durationError.value = ''
+    timeFrom.value = ''
+    timeTo.value = ''
     form.reset()
     form.clearErrors()
 }
@@ -180,7 +215,9 @@ const startEdit = (report) => {
     form.hourly_rate = report.hourly_rate
     form.description = report.description || ''
     form.user_id = report.user_id
-    duration.value = String(report.minutes)
+    duration.value = formatClock(report.minutes)
+    timeFrom.value = report.started_at ? report.started_at.substring(11, 16) : ''
+    timeTo.value = report.ended_at ? report.ended_at.substring(11, 16) : ''
 }
 
 const submit = () => {
@@ -191,8 +228,22 @@ const submit = () => {
         return
     }
 
+    if (Boolean(timeFrom.value) !== Boolean(timeTo.value)) {
+        durationError.value = 'Vyplňte čas od i do, nebo nechte obojí prázdné.'
+        return
+    }
+
     durationError.value = ''
     form.minutes = minutes
+
+    // The server derives minutes from the range; an end before the start means past midnight.
+    if (timeFrom.value) {
+        form.started_at = `${form.date} ${timeFrom.value}`
+        form.ended_at = `${timeTo.value <= timeFrom.value ? nextDay(form.date) : form.date} ${timeTo.value}`
+    } else {
+        form.started_at = null
+        form.ended_at = null
+    }
 
     // An empty rate lets the server fall back to the project's default.
     form.transform(data => ({ ...data, hourly_rate: data.hourly_rate === '' ? null : data.hourly_rate }))
