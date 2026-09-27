@@ -21,6 +21,14 @@ class Project extends Model
         'hourly_rate' => 'decimal:2',
     ];
 
+    protected static function booted(): void
+    {
+        // Todos cascade in the database, so their thread attachments are removed here.
+        static::deleting(function (Project $project) {
+            TodoComment::purgeFilesFor($project->todos()->pluck('todos.id'));
+        });
+    }
+
     /**
      * @return HasMany<Todolist, $this>
      */

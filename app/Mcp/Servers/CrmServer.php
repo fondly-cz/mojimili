@@ -7,6 +7,7 @@ use App\Mcp\Tools\CreateCompanyTool;
 use App\Mcp\Tools\CreateInvoiceTool;
 use App\Mcp\Tools\CreateProjectTool;
 use App\Mcp\Tools\CreateServiceTool;
+use App\Mcp\Tools\CreateTodoCommentTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
 use App\Mcp\Tools\CreateWorkReportTool;
@@ -67,6 +68,9 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
    delete-work-report). K jednomu úkolu může vykazovat víc lidí – ID osob zjistíš nástrojem list-users.
    Sazba nového výkazu: vlastní sazba výkazu, jinak sazba osoby v projektu (user_rates u update-project),
    jinak výchozí sazba projektu (hourly_rate u create-project/update-project).
+6. Příspěvky do vlákna úkolu (jako komentáře ve Freelu) přidáš nástrojem create-todo-comment, i s přílohami
+   v base64. Při přenosu z jiného systému zachovej původní datum (created_at) a autora bez účtu v CRM
+   uveď jménem (author_name). Příspěvky úkolů vrací get-project.
 
 Fakturace (CRM fakturu nevystavuje, jen eviduje její číslo a odkaz a označí výkazy jako vyfakturované):
 1. Nevyfakturované výkazy najdeš nástrojem list-uninvoiced-work-reports (filtr podle projektu, firmy,
@@ -101,6 +105,7 @@ class CrmServer extends Server
         CreateTodolistTool::class,
         CreateTodolistFromCalculationTool::class,
         UpdateTodoTool::class,
+        CreateTodoCommentTool::class,
         CreateWorkReportTool::class,
         UpdateWorkReportTool::class,
         DeleteWorkReportTool::class,

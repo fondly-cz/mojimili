@@ -40,6 +40,11 @@ class Todo extends Model
                 app(SpawnNextRecurringTodo::class)->handle($todo);
             }
         });
+
+        // Thread rows cascade in the database; the attachment files have to go explicitly.
+        static::deleted(function (Todo $todo) {
+            TodoComment::purgeFilesFor([$todo->id]);
+        });
     }
 
     /**
@@ -178,5 +183,13 @@ class Todo extends Model
     public function workReports(): HasMany
     {
         return $this->hasMany(WorkReport::class)->orderBy('date')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<TodoComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(TodoComment::class)->orderBy('created_at')->orderBy('id');
     }
 }

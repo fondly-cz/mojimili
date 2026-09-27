@@ -15,6 +15,14 @@ class Todolist extends Model
 
     protected $guarded = [];
 
+    protected static function booted(): void
+    {
+        // Todos cascade in the database, so their thread attachments are removed here.
+        static::deleting(function (Todolist $todolist) {
+            TodoComment::purgeFilesFor($todolist->todos()->pluck('id'));
+        });
+    }
+
     /**
      * @return HasMany<Todo, $this>
      */

@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Models\Project;
 use App\Models\Todo;
+use App\Models\TodoComment;
 use App\Models\Todolist;
 use App\Models\WorkReport;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -40,6 +41,8 @@ class GetProjectTool extends Tool
             'todolists.todos.assignee:id,name',
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number',
+            'todolists.todos.comments.user:id,name',
+            'todolists.todos.comments.attachments',
         ])->where('id', $validated['id'])->firstOrFail();
 
         return Response::text(collect([
@@ -95,6 +98,17 @@ class GetProjectTool extends Tool
                         'amount' => $report->amount,
                         'description' => $report->description,
                         'invoice_number' => $report->invoice?->number,
+                    ])->all(),
+                    'comments' => $todo->comments->map(fn (TodoComment $comment) => [
+                        'id' => $comment->id,
+                        'author' => $comment->user?->name ?? $comment->author_name,
+                        'created_at' => $comment->created_at->format('Y-m-d H:i'),
+                        'body' => $comment->body,
+                        'attachments' => $comment->attachments->map(fn ($attachment) => [
+                            'name' => $attachment->original_name,
+                            'size' => $attachment->size,
+                            'url' => $attachment->url,
+                        ])->all(),
                     ])->all(),
                 ])->all(),
             ])->all(),
