@@ -72,6 +72,15 @@ class GetProjectTool extends Tool
                     'assigned_user_id' => $todo->assigned_user_id,
                     'assigned_user_name' => $todo->assignee?->name,
                     'due_date' => $todo->due_date?->toDateString(),
+                    'recurrence' => $todo->recurrence_frequency ? [
+                        'frequency' => $todo->recurrence_frequency->value,
+                        'interval' => $todo->recurrence_interval,
+                        'working_days_only' => $todo->recurrence_working_days_only,
+                        'ends_on' => $todo->recurrence_ends_on?->toDateString(),
+                        'remaining' => $todo->recurrence_remaining,
+                        'copy_description' => $todo->recurrence_copy_description,
+                        'label' => $todo->recurrenceLabel(),
+                    ] : null,
                     'reported_minutes' => $todo->workReports->sum('minutes'),
                     'uninvoiced_minutes' => $todo->workReports->whereNull('invoice_id')->sum('minutes'),
                     'work_reports' => $todo->workReports->map(fn (WorkReport $report) => [

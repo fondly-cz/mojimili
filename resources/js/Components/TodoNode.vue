@@ -68,6 +68,8 @@
                     </button>
                 </div>
 
+                <TodoRecurrence :todo="todo" />
+
                 <TodoWorkReports :todo="todo" :users="users" :default-rate="defaultRate" :user-rates="userRates" />
             </div>
         </div>
@@ -94,6 +96,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import TodoRecurrence from './TodoRecurrence.vue'
 import TodoWorkReports from './TodoWorkReports.vue'
 
 const props = defineProps({
