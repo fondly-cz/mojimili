@@ -65,6 +65,8 @@ class ProjectController extends Controller
             'user',
             'todolists.calculation:id,customer_name,customer_company',
             'todolists.todos.assignee:id,name',
+            'todolists.todos.workReports.user:id,name',
+            'todolists.todos.workReports.invoice:id,number,url',
         ]);
 
         return inertia('Projects/Show', [
@@ -127,6 +129,7 @@ class ProjectController extends Controller
             'company_id' => 'nullable|exists:companies,id',
             'company_employee_id' => 'nullable|exists:company_employees,id',
             'status' => 'nullable|string|in:active,on_hold,done,archived',
+            'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ];
     }
 }

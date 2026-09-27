@@ -70,6 +70,33 @@
             </div>
         </div>
 
+        <!-- Billing summary -->
+        <div class="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Vykázáno</p>
+                <p class="mt-2 text-3xl font-black text-gray-900 font-heading">{{ formatMinutes(billing.minutes) }}</p>
+                <p class="mt-1 text-xs font-bold text-gray-400">
+                    {{ formatCurrency(billing.amount) }}
+                    · výchozí sazba {{ project.hourly_rate ? `${formatCurrency(project.hourly_rate)}/h` : 'nenastavena' }}
+                </p>
+            </div>
+            <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Vyfakturováno</p>
+                <p class="mt-2 text-3xl font-black text-green-600 font-heading">{{ formatCurrency(billing.invoicedAmount) }}</p>
+                <p class="mt-1 text-xs font-bold text-gray-400">{{ formatMinutes(billing.invoicedMinutes) }}</p>
+            </div>
+            <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">K fakturaci</p>
+                <p class="mt-2 text-3xl font-black text-amber-500 font-heading">{{ formatCurrency(billing.amount - billing.invoicedAmount) }}</p>
+                <Link
+                    :href="`/billing?project_id=${project.id}`"
+                    class="mt-1 inline-block text-xs font-black brand-text-gradient"
+                >
+                    Vyfakturovat →
+                </Link>
+            </div>
+        </div>
+
         <!-- Todolists -->
         <div v-if="project.todolists.length === 0" class="bg-white rounded-[2.5rem] border border-gray-50 p-16 text-center shadow-sm">
             <p class="text-sm font-bold text-gray-400">Projekt zatím nemá žádný seznam úkolů.</p>
@@ -124,6 +151,7 @@
                             :todo="todo"
                             :all-todos="list.todos"
                             :users="users"
+                            :default-rate="project.hourly_rate"
                             @toggle="toggleTodo"
                             @assign="assignTodo"
                             @due-date="setDueDate"
@@ -243,6 +271,7 @@ import Modal from '../../Components/Modal.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 import TodoNode from '../../Components/TodoNode.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
+import { formatCurrency, formatMinutes, reportAmount } from '../../utils/billing'
 
 const props = defineProps({
     project: Object,
@@ -268,6 +297,18 @@ const allTodos = computed(() => props.project.todolists.flatMap(l => l.todos))
 const totalCount = computed(() => allTodos.value.length)
 const doneCount = computed(() => allTodos.value.filter(t => t.is_done).length)
 const totalDays = computed(() => allTodos.value.reduce((sum, t) => sum + (t.days || 0), 0))
+
+const billing = computed(() => {
+    const reports = allTodos.value.flatMap(t => t.work_reports || [])
+    const invoiced = reports.filter(r => r.invoice_id)
+
+    return {
+        minutes: reports.reduce((sum, r) => sum + r.minutes, 0),
+        amount: reports.reduce((sum, r) => sum + reportAmount(r), 0),
+        invoicedMinutes: invoiced.reduce((sum, r) => sum + r.minutes, 0),
+        invoicedAmount: invoiced.reduce((sum, r) => sum + reportAmount(r), 0),
+    }
+})
 
 const rootTodos = (list) => list.todos.filter(t => t.parent_id === null)
 

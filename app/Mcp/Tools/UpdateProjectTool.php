@@ -32,6 +32,7 @@ class UpdateProjectTool extends Tool
             'company_id' => 'sometimes|nullable|integer|exists:companies,id',
             'company_employee_id' => 'sometimes|nullable|integer|exists:company_employees,id',
             'status' => 'sometimes|string|in:active,on_hold,done,archived',
+            'hourly_rate' => 'sometimes|nullable|numeric|min:0',
         ], [
             'id.exists' => 'Projekt s tímto ID neexistuje. Seznam získáš nástrojem list-projects.',
             'status.in' => 'Stav projektu musí být "active", "on_hold", "done" nebo "archived".',
@@ -81,6 +82,9 @@ class UpdateProjectTool extends Tool
             'status' => $schema->string()
                 ->enum(['active', 'on_hold', 'done', 'archived'])
                 ->description('Nový stav projektu.'),
+
+            'hourly_rate' => $schema->number()
+                ->description('Nová výchozí hodinová sazba projektu v Kč bez DPH (už vykázané výkazy se nemění). null sazbu zruší.'),
         ];
     }
 }

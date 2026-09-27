@@ -4,11 +4,13 @@ use App\Http\Controllers\Api\CalculationItemsController;
 use App\Http\Controllers\Api\CompanyEmployeeSearchController;
 use App\Http\Controllers\Api\CompanySearchController;
 use App\Http\Controllers\AresController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CalculationController;
 use App\Http\Controllers\CalculationTodolistController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyEmployeeController;
 use App\Http\Controllers\CrmController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyCompanyController;
 use App\Http\Controllers\PassportKeyController;
 use App\Http\Controllers\ProfileController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\TodolistController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'hasRole'])->group(function () {
@@ -49,6 +52,15 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     Route::post('todolists/{todolist}/todos', [TodoController::class, 'store'])->name('todolists.todos.store');
     Route::patch('todos/{todo}', [TodoController::class, 'update'])->name('todos.update');
     Route::delete('todos/{todo}', [TodoController::class, 'destroy'])->name('todos.destroy');
+
+    Route::post('todos/{todo}/work-reports', [WorkReportController::class, 'store'])->name('todos.work-reports.store');
+    Route::patch('work-reports/{workReport}', [WorkReportController::class, 'update'])->name('work-reports.update');
+    Route::delete('work-reports/{workReport}', [WorkReportController::class, 'destroy'])->name('work-reports.destroy');
+
+    Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
+    Route::resource('invoices', InvoiceController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::post('invoices/{invoice}/attach', [InvoiceController::class, 'attach'])->name('invoices.attach');
+    Route::post('invoices/{invoice}/detach', [InvoiceController::class, 'detach'])->name('invoices.detach');
 
     // Převod položek kalkulace na seznam úkolů v projektu
     Route::post('calculations/{calculation}/todolist', [CalculationTodolistController::class, 'store'])->name('calculations.todolist.store');

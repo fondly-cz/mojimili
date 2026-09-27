@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Project extends Model
 {
@@ -14,6 +15,10 @@ class Project extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    protected $casts = [
+        'hourly_rate' => 'decimal:2',
+    ];
 
     /**
      * @return HasMany<Todolist, $this>
@@ -45,5 +50,13 @@ class Project extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return HasManyThrough<Todo, Todolist, $this>
+     */
+    public function todos(): HasManyThrough
+    {
+        return $this->hasManyThrough(Todo::class, Todolist::class);
     }
 }

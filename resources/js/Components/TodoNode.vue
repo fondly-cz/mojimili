@@ -67,6 +67,8 @@
                         Smazat
                     </button>
                 </div>
+
+                <TodoWorkReports :todo="todo" :users="users" :default-rate="defaultRate" />
             </div>
         </div>
 
@@ -78,6 +80,7 @@
                 :todo="child"
                 :all-todos="allTodos"
                 :users="users"
+                :default-rate="defaultRate"
                 @toggle="$emit('toggle', $event)"
                 @assign="$emit('assign', $event)"
                 @due-date="$emit('due-date', $event)"
@@ -90,11 +93,13 @@
 
 <script setup>
 import { computed } from 'vue'
+import TodoWorkReports from './TodoWorkReports.vue'
 
 const props = defineProps({
     todo: Object,
     allTodos: Array,
     users: Array,
+    defaultRate: [String, Number],
 })
 
 defineEmits(['toggle', 'assign', 'due-date', 'add-child', 'remove'])

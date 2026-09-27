@@ -31,6 +31,7 @@ class CreateProjectTool extends Tool
             'company_id' => 'nullable|integer|exists:companies,id',
             'company_employee_id' => 'nullable|integer|exists:company_employees,id',
             'status' => 'nullable|string|in:active,on_hold,done,archived',
+            'hourly_rate' => 'nullable|numeric|min:0',
         ], [
             'status.in' => 'Stav projektu musí být "active", "on_hold", "done" nebo "archived".',
             'company_id.exists' => 'Firma s tímto ID neexistuje. Seznam získáš nástrojem list-companies.',
@@ -74,6 +75,9 @@ class CreateProjectTool extends Tool
                 ->enum(['active', 'on_hold', 'done', 'archived'])
                 ->description('Stav projektu.')
                 ->default('active'),
+
+            'hourly_rate' => $schema->number()
+                ->description('Výchozí hodinová sazba projektu v Kč bez DPH. Použije se pro nové výkazy práce, pokud neuvedou vlastní sazbu.'),
         ];
     }
 }

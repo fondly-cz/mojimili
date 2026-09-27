@@ -67,6 +67,20 @@
                             <p v-if="form.errors.status" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ form.errors.status }}</p>
                         </div>
 
+                        <div>
+                            <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Hodinová sazba (Kč bez DPH)</label>
+                            <input
+                                v-model="form.hourly_rate"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="block w-full px-5 py-3.5 bg-gray-50 border-gray-50 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-brand-primary-from focus:border-brand-primary-from transition-all"
+                                placeholder="Např. 1000"
+                            >
+                            <p class="mt-2 text-xs text-gray-400 font-semibold ml-1">Výchozí sazba pro nové výkazy. Každý výkaz může mít vlastní.</p>
+                            <p v-if="form.errors.hourly_rate" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ form.errors.hourly_rate }}</p>
+                        </div>
+
                         <div class="md:col-span-2">
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Popis</label>
                             <textarea
@@ -108,6 +122,7 @@ const form = useForm({
     description: '',
     company_id: '',
     status: 'active',
+    hourly_rate: '',
 })
 
 const submit = () => {
