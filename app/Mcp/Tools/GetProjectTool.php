@@ -77,6 +77,8 @@ class GetProjectTool extends Tool
                     'work_reports' => $todo->workReports->map(fn (WorkReport $report) => [
                         'id' => $report->id,
                         'date' => $report->date->toDateString(),
+                        'started_at' => $report->started_at?->format('Y-m-d H:i'),
+                        'ended_at' => $report->ended_at?->format('Y-m-d H:i'),
                         'user_id' => $report->user_id,
                         'user_name' => $report->user?->name,
                         'minutes' => $report->minutes,

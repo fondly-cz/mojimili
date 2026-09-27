@@ -10,7 +10,7 @@ class WorkReportController extends Controller
 {
     public function store(Request $request, Todo $todo)
     {
-        $validated = $request->validate($this->rules());
+        $validated = $request->validate(WorkReport::rules());
 
         $userId = $validated['user_id'] ?? auth()->id();
 
@@ -30,7 +30,7 @@ class WorkReportController extends Controller
             return back()->withErrors(['work_report' => 'Vyfakturovaný výkaz nelze upravit. Nejdřív ho odeberte z faktury.']);
         }
 
-        $validated = $request->validate($this->rules(partial: true));
+        $validated = $request->validate(WorkReport::rules(partial: true));
 
         if (array_key_exists('hourly_rate', $validated) && $validated['hourly_rate'] === null) {
             $validated['hourly_rate'] = $workReport->todo->todolist->project->rateFor(
@@ -52,21 +52,5 @@ class WorkReportController extends Controller
         $workReport->delete();
 
         return back()->with('success', 'Výkaz byl smazán.');
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function rules(bool $partial = false): array
-    {
-        $required = $partial ? 'sometimes|required' : 'required';
-
-        return [
-            'date' => "{$required}|date",
-            'minutes' => "{$required}|integer|min:1|max:1440",
-            'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
-            'description' => 'nullable|string|max:2000',
-            'user_id' => 'nullable|exists:users,id',
-        ];
     }
 }

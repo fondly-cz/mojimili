@@ -37,4 +37,30 @@ export const parseDuration = (input) => {
     return null
 }
 
+const toMinutes = (time) => {
+    const [hours, minutes] = String(time).split(':').map(Number)
+    return hours * 60 + minutes
+}
+
+/**
+ * Minutes from "HH:MM" to "HH:MM"; an end not after the start counts as the next day.
+ */
+export const minutesBetween = (from, to) => {
+    if (!from || !to) return null
+
+    const diff = toMinutes(to) - toMinutes(from)
+    return diff > 0 ? diff : diff + 24 * 60
+}
+
+export const addMinutesToTime = (time, minutes) => {
+    const total = (toMinutes(time) + minutes) % (24 * 60)
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+export const formatClock = (minutes) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+
+export const formatTimeRange = (report) => report.started_at && report.ended_at
+    ? `${report.started_at.substring(11, 16)}–${report.ended_at.substring(11, 16)}`
+    : ''
+
 export const reportAmount = (report) => Math.round((report.minutes / 60) * Number(report.hourly_rate) * 100) / 100

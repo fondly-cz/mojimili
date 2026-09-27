@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('update-work-report')]
 #[Title('Upravit výkaz')]
-#[Description('Upraví výkaz práce. Vyplň jen pole, která se mají změnit. Vyfakturovaný výkaz upravit nelze – nejdřív ho odeber z faktury (update-invoice). ID výkazů zjistíš nástrojem get-project nebo list-uninvoiced-work-reports.')]
+#[Description('Upraví výkaz práce. Vyplň jen pole, která se mají změnit. Má-li výkaz rozsah od–do, změna minutes posune konec a změna date přesune rozsah na daný den; started_at a ended_at posílej vždy spolu (null oba rozsah zruší). Vyfakturovaný výkaz upravit nelze – nejdřív ho odeber z faktury (update-invoice). ID výkazů zjistíš nástrojem get-project nebo list-uninvoiced-work-reports.')]
 class UpdateWorkReportTool extends Tool
 {
     use DescribesWorkReports;
@@ -27,11 +27,8 @@ class UpdateWorkReportTool extends Tool
         }
 
         $validated = $request->validate([
+            ...WorkReport::rules(partial: true),
             'id' => 'required|integer|exists:work_reports,id',
-            'date' => 'sometimes|date',
-            'minutes' => 'sometimes|integer|min:1|max:1440',
-            'hourly_rate' => 'sometimes|nullable|numeric|min:0|max:99999999',
-            'description' => 'sometimes|nullable|string|max:2000',
             'user_id' => 'sometimes|integer|exists:users,id',
         ], [
             'id.exists' => 'Výkaz s tímto ID neexistuje.',
@@ -84,6 +81,12 @@ class UpdateWorkReportTool extends Tool
 
             'minutes' => $schema->integer()
                 ->description('Nový odpracovaný čas v minutách.'),
+
+            'started_at' => $schema->string()
+                ->description('Nový začátek práce, YYYY-MM-DD HH:MM. Minuty i datum se dopočítají.'),
+
+            'ended_at' => $schema->string()
+                ->description('Nový konec práce, YYYY-MM-DD HH:MM.'),
 
             'hourly_rate' => $schema->number()
                 ->description('Nová hodinová sazba v Kč bez DPH. null vrátí sazbu osoby v projektu, případně výchozí sazbu projektu.'),
