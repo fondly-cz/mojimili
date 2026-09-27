@@ -36,6 +36,7 @@ class GetProjectTool extends Tool
         $project = Project::with([
             'company:id,name',
             'todolists.todos.assignee:id,name',
+            'todolists.todos.workReports',
         ])->where('id', $validated['id'])->firstOrFail();
 
         return Response::text(collect([
@@ -43,6 +44,7 @@ class GetProjectTool extends Tool
             'name' => $project->name,
             'description' => $project->description,
             'status' => $project->status,
+            'hourly_rate' => $project->hourly_rate,
             'company_id' => $project->company_id,
             'company_name' => $project->company?->name,
             'url' => route('projects.show', $project),
@@ -62,6 +64,8 @@ class GetProjectTool extends Tool
                     'assigned_user_id' => $todo->assigned_user_id,
                     'assigned_user_name' => $todo->assignee?->name,
                     'due_date' => $todo->due_date?->toDateString(),
+                    'reported_minutes' => $todo->workReports->sum('minutes'),
+                    'uninvoiced_minutes' => $todo->workReports->whereNull('invoice_id')->sum('minutes'),
                 ])->all(),
             ])->all(),
         ])->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

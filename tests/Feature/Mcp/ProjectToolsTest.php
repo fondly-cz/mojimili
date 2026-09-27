@@ -7,6 +7,7 @@ use App\Mcp\Servers\CrmServer;
 use App\Mcp\Tools\CreateProjectTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
+use App\Mcp\Tools\CreateWorkReportTool;
 use App\Mcp\Tools\GetProjectTool;
 use App\Mcp\Tools\ListProjectsTool;
 use App\Mcp\Tools\UpdateProjectTool;
@@ -18,6 +19,7 @@ use App\Models\Project;
 use App\Models\Todo;
 use App\Models\Todolist;
 use App\Models\User;
+use App\Models\WorkReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -283,5 +285,34 @@ class ProjectToolsTest extends TestCase
         ])->assertOk();
 
         $this->assertSame($assignee->id, $todo->refresh()->assigned_user_id);
+    }
+
+    public function test_it_creates_a_work_report_with_the_project_rate(): void
+    {
+        $project = Project::factory()->create(['hourly_rate' => 1500]);
+        $todo = Todo::factory()->forTodolist(Todolist::factory()->forProject($project)->create())->create();
+
+        $response = CrmServer::actingAs($this->manager())->tool(CreateWorkReportTool::class, [
+            'todo_id' => $todo->id,
+            'minutes' => 60,
+            'date' => '2026-09-20',
+        ]);
+
+        $response->assertOk()->assertSee('1 500,00 Kč');
+        $this->assertSame('1500.00', WorkReport::sole()->hourly_rate);
+    }
+
+    public function test_a_work_report_can_override_the_project_rate(): void
+    {
+        $project = Project::factory()->create(['hourly_rate' => 1500]);
+        $todo = Todo::factory()->forTodolist(Todolist::factory()->forProject($project)->create())->create();
+
+        CrmServer::actingAs($this->manager())->tool(CreateWorkReportTool::class, [
+            'todo_id' => $todo->id,
+            'minutes' => 30,
+            'hourly_rate' => 800,
+        ])->assertOk();
+
+        $this->assertSame('800.00', WorkReport::sole()->hourly_rate);
     }
 }

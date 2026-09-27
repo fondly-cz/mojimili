@@ -62,4 +62,12 @@ class Todo extends Model
     {
         return $this->hasMany(Todo::class, 'parent_id')->orderBy('sort_order')->orderBy('id');
     }
+
+    /**
+     * @return HasMany<WorkReport, $this>
+     */
+    public function workReports(): HasMany
+    {
+        return $this->hasMany(WorkReport::class)->orderBy('date')->orderBy('id');
+    }
 }

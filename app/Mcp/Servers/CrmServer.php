@@ -8,6 +8,7 @@ use App\Mcp\Tools\CreateProjectTool;
 use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
+use App\Mcp\Tools\CreateWorkReportTool;
 use App\Mcp\Tools\GetCalculationTool;
 use App\Mcp\Tools\GetProjectTool;
 use App\Mcp\Tools\ListCalculationsTool;
@@ -53,6 +54,9 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
 3. Ruční seznam úkolů založ nástrojem create-todolist (úkoly zanoříš stejně přes `key` a `parent_key`).
 4. Detail projektu i ID jednotlivých úkolů získáš nástrojem get-project, jeden úkol pak upravíš
    nástrojem update-todo (dokončení, přiřazení řešitele, termín).
+5. Odpracovaný čas k úkolu vykážeš nástrojem create-work-report. Projekt může mít výchozí hodinovou
+   sazbu (hourly_rate u create-project/update-project), každý výkaz ale může mít vlastní sazbu.
+   Fakturace výkazů probíhá v CRM na stránce K fakturaci.
 TEXT)]
 class CrmServer extends Server
 {
@@ -78,5 +82,6 @@ class CrmServer extends Server
         CreateTodolistTool::class,
         CreateTodolistFromCalculationTool::class,
         UpdateTodoTool::class,
+        CreateWorkReportTool::class,
     ];
 }
