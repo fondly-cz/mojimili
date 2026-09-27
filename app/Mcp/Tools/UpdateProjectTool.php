@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Models\Project;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Support\Facades\DB;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -33,6 +34,9 @@ class UpdateProjectTool extends Tool
             'company_employee_id' => 'sometimes|nullable|integer|exists:company_employees,id',
             'status' => 'sometimes|string|in:active,on_hold,done,archived',
             'hourly_rate' => 'sometimes|nullable|numeric|min:0',
+            'user_rates' => 'sometimes|array',
+            'user_rates.*.user_id' => 'required|integer|distinct|exists:users,id',
+            'user_rates.*.hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ], [
             'id.exists' => 'Projekt s tímto ID neexistuje. Seznam získáš nástrojem list-projects.',
             'status.in' => 'Stav projektu musí být "active", "on_hold", "done" nebo "archived".',
@@ -45,7 +49,17 @@ class UpdateProjectTool extends Tool
             return Response::error('Neuvedl jsi žádnou změnu. Vyplň alespoň jedno pole, které se má upravit.');
         }
 
-        $project->update($validated);
+        DB::transaction(function () use ($project, $validated) {
+            $project->update(collect($validated)->except('user_rates')->all());
+
+            if (array_key_exists('user_rates', $validated)) {
+                // A null rate removes the person's override.
+                $project->userRates()->sync(collect($validated['user_rates'])
+                    ->filter(fn ($rate) => ($rate['hourly_rate'] ?? null) !== null)
+                    ->mapWithKeys(fn ($rate) => [$rate['user_id'] => ['hourly_rate' => $rate['hourly_rate']]])
+                    ->all());
+            }
+        });
 
         return Response::text(sprintf(
             "Projekt \"%s\" byl upraven (project_id %d, stav %s).\nZměněná pole: %s\nDetail v CRM: %s",
@@ -85,6 +99,13 @@ class UpdateProjectTool extends Tool
 
             'hourly_rate' => $schema->number()
                 ->description('Nová výchozí hodinová sazba projektu v Kč bez DPH (už vykázané výkazy se nemění). null sazbu zruší.'),
+
+            'user_rates' => $schema->array()
+                ->description('Vlastní hodinové sazby osob v projektu – nahradí všechny dosavadní. Osoba bez sazby (nebo s hourly_rate null) vykazuje za výchozí sazbu projektu. ID osob zjistíš nástrojem list-users.')
+                ->items($schema->object([
+                    'user_id' => $schema->integer()->description('ID uživatele.')->required(),
+                    'hourly_rate' => $schema->number()->description('Sazba osoby v Kč bez DPH.'),
+                ])),
         ];
     }
 }
