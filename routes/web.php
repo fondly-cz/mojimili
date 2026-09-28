@@ -11,10 +11,12 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyEmployeeController;
 use App\Http\Controllers\CrmController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MyCompanyController;
 use App\Http\Controllers\PassportKeyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TodoCommentController;
@@ -44,6 +46,14 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     // Projekty, seznamy úkolů a úkoly
     Route::post('projects/bulk-delete', [ProjectController::class, 'bulkDelete'])->name('projects.bulk-delete');
     Route::resource('projects', ProjectController::class);
+
+    Route::post('projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('projects.documents.store');
+    Route::patch('project-documents/{document}', [ProjectDocumentController::class, 'update'])->name('project-documents.update');
+    Route::delete('project-documents/{document}', [ProjectDocumentController::class, 'destroy'])->name('project-documents.destroy');
+
+    Route::post('labels', [LabelController::class, 'store'])->name('labels.store');
+    Route::patch('labels/{label}', [LabelController::class, 'update'])->name('labels.update');
+    Route::delete('labels/{label}', [LabelController::class, 'destroy'])->name('labels.destroy');
 
     Route::post('projects/{project}/todolists', [TodolistController::class, 'store'])->name('projects.todolists.store');
     Route::patch('todolists/{todolist}', [TodolistController::class, 'update'])->name('todolists.update');

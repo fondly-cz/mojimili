@@ -112,7 +112,29 @@
                             <input
                                 type="date"
                                 :value="todo.due_date ? todo.due_date.substring(0, 10) : ''"
-                                @change="e => update({ due_date: e.target.value || null })"
+                                @change="e => update({ due_date: e.target.value || null, ...(e.target.value ? {} : { due_time: null }) })"
+                                :class="inputClass"
+                            >
+                        </div>
+                        <div>
+                            <label :class="labelClass">Čas</label>
+                            <input
+                                type="time"
+                                :value="todo.due_time || ''"
+                                :disabled="!todo.due_date"
+                                @change="e => update({ due_time: e.target.value || null })"
+                                :class="inputClass"
+                                class="disabled:opacity-40"
+                            >
+                        </div>
+                        <div>
+                            <label :class="labelClass">Odhad času (h)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.25"
+                                :value="todo.estimated_minutes != null ? todo.estimated_minutes / 60 : ''"
+                                @change="e => update({ estimated_minutes: e.target.value === '' ? null : Math.round(Number(e.target.value) * 60) })"
                                 :class="inputClass"
                             >
                         </div>
@@ -127,8 +149,24 @@
                             >
                         </div>
                     </div>
+                    <div>
+                        <label :class="labelClass">Priorita</label>
+                        <select :value="todo.priority || ''" @change="e => update({ priority: e.target.value || null })" :class="inputClass">
+                            <option value="">Bez priority</option>
+                            <option value="high">Vysoká</option>
+                            <option value="medium">Střední</option>
+                            <option value="low">Nízká</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label :class="labelClass">Štítky</label>
+                        <TodoLabels :todo="todo" :labels="labels" :input-class="inputClass" />
+                    </div>
+                    <p v-if="todo.creator" class="text-xs font-bold text-gray-400">
+                        Založil(a) {{ todo.creator.name }} {{ new Date(todo.created_at).toLocaleString('cs-CZ') }}
+                    </p>
                     <p v-if="todo.completed_at" class="text-xs font-bold text-gray-400">
-                        Dokončeno {{ new Date(todo.completed_at).toLocaleString('cs-CZ') }}
+                        Dokončeno {{ new Date(todo.completed_at).toLocaleString('cs-CZ') }}<span v-if="todo.completer"> · {{ todo.completer.name }}</span>
                     </p>
                     <div>
                         <label :class="labelClass">Opakování</label>
@@ -185,12 +223,14 @@ import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 import RichEditor from '../../Components/RichEditor.vue'
 import TodoComments from '../../Components/TodoComments.vue'
+import TodoLabels from '../../Components/TodoLabels.vue'
 import TodoRecurrence from '../../Components/TodoRecurrence.vue'
 import TodoWorkReports from '../../Components/TodoWorkReports.vue'
 
 const props = defineProps({
     todo: Object,
     users: Array,
+    labels: Array,
 })
 
 const cardClass = 'bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm'

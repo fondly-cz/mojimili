@@ -3,6 +3,8 @@
 namespace App\Mcp\Tools;
 
 use App\Enums\RecurrenceFrequency;
+use App\Enums\TodoPriority;
+use App\Models\Label;
 use App\Models\Todo;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -15,14 +17,14 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('update-todo')]
 #[Title('Upravit úkol')]
-#[Description('Upraví jeden úkol – označí ho za hotový, přiřadí řešitele, nastaví termín, změní název nebo nastaví opakování. Vyplň jen pole, která se mají změnit. ID úkolů zjistíš nástrojem get-project. Opakovaný úkol funguje jako ve Freelu: po dokončení se vytvoří jeho další výskyt s posunutým termínem, stejným řešitelem a otevřenými podúkoly.')]
+#[Description('Upraví jeden úkol – označí ho za hotový, přiřadí řešitele, nastaví termín, prioritu, odhad, štítky, změní název nebo nastaví opakování. Vyplň jen pole, která se mají změnit. ID úkolů zjistíš nástrojem get-project. Opakovaný úkol funguje jako ve Freelu: po dokončení se vytvoří jeho další výskyt s posunutým termínem, stejným řešitelem a otevřenými podúkoly.')]
 class UpdateTodoTool extends Tool
 {
     use InteractsWithCrmUser;
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -34,7 +36,10 @@ class UpdateTodoTool extends Tool
             'is_done' => 'sometimes|boolean',
             'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id',
             'due_date' => 'sometimes|nullable|date',
+            ...Todo::detailRules(),
             ...Todo::recurrenceRules(),
+            'labels' => 'sometimes|nullable|array|max:50',
+            'labels.*' => 'string|max:100',
         ], [
             'id.exists' => 'Úkol s tímto ID neexistuje. ID úkolů zjistíš nástrojem get-project.',
             'assigned_user_id.exists' => 'Uživatel s tímto ID v CRM neexistuje.',
@@ -51,10 +56,14 @@ class UpdateTodoTool extends Tool
         $validated = $todo->prepareRecurrence($validated);
 
         if (array_key_exists('is_done', $validated)) {
-            $validated['completed_at'] = $validated['is_done'] ? now() : null;
+            $validated = [...$validated, ...Todo::completionAttributes((bool) $validated['is_done'], $user->id)];
         }
 
-        $todo->update($validated);
+        $todo->update(collect($validated)->except('labels')->all());
+
+        if (array_key_exists('labels', $validated)) {
+            $todo->labels()->sync(Label::idsForNames($validated['labels'] ?? []));
+        }
         $todo->load('todolist.project');
 
         $next = $todo->is_done ? Todo::where('recurrence_previous_id', $todo->id)->first() : null;
@@ -98,6 +107,20 @@ class UpdateTodoTool extends Tool
 
             'due_date' => $schema->string()
                 ->description('Termín úkolu ve formátu YYYY-MM-DD. null termín zruší. U opakovaného úkolu se od něj počítají další výskyty.'),
+
+            'priority' => $schema->string()
+                ->enum(array_column(TodoPriority::cases(), 'value'))
+                ->description('Priorita úkolu: high, medium, low. null prioritu zruší.'),
+
+            'estimated_minutes' => $schema->integer()
+                ->description('Odhadovaný čas práce v minutách. null odhad zruší.'),
+
+            'due_time' => $schema->string()
+                ->description('Čas termínu ve formátu HH:MM (jen spolu s termínem). null čas zruší.'),
+
+            'labels' => $schema->array()
+                ->description('Názvy štítků úkolu – nahradí všechny dosavadní, chybějící štítky se založí. [] štítky odebere.')
+                ->items($schema->string()),
 
             'recurrence_frequency' => $schema->string()
                 ->enum(array_column(RecurrenceFrequency::cases(), 'value'))

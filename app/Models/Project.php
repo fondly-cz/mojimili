@@ -19,7 +19,24 @@ class Project extends Model
 
     protected $casts = [
         'hourly_rate' => 'decimal:2',
+        'budget' => 'decimal:2',
+        'budget_minutes' => 'integer',
+        'due_date' => 'date:Y-m-d',
     ];
+
+    /**
+     * Deadline and budget, shared by the web UI and the MCP tools.
+     *
+     * @return array<string, string>
+     */
+    public static function planningRules(): array
+    {
+        return [
+            'due_date' => 'sometimes|nullable|date',
+            'budget' => 'sometimes|nullable|numeric|min:0|max:9999999999',
+            'budget_minutes' => 'sometimes|nullable|integer|min:0|max:100000000',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -35,6 +52,14 @@ class Project extends Model
     public function todolists(): HasMany
     {
         return $this->hasMany(Todolist::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<ProjectDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ProjectDocument::class)->orderBy('sort_order')->orderBy('id');
     }
 
     /**

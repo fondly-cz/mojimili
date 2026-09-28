@@ -30,13 +30,14 @@ class TodoCommentAttachment extends Model
     /**
      * Stores an uploaded file next to the other files of the comment's todo.
      */
-    public static function storeFor(TodoComment $comment, UploadedFile $file): self
+    public static function storeFor(TodoComment $comment, UploadedFile $file, ?string $caption = null): self
     {
         $path = $file->store(TodoComment::directoryFor($comment->todo_id), TodoComment::DISK);
 
         return $comment->attachments()->create([
             'path' => $path,
             'original_name' => $file->getClientOriginalName(),
+            'caption' => $caption,
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
         ]);
@@ -45,7 +46,7 @@ class TodoCommentAttachment extends Model
     /**
      * Stores raw file content (e.g. a base64 attachment sent through MCP) like an upload.
      */
-    public static function storeContent(TodoComment $comment, string $name, string $content): self
+    public static function storeContent(TodoComment $comment, string $name, string $content, ?string $caption = null): self
     {
         $disk = Storage::disk(TodoComment::DISK);
         $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
@@ -56,6 +57,7 @@ class TodoCommentAttachment extends Model
         return $comment->attachments()->create([
             'path' => $path,
             'original_name' => $name,
+            'caption' => $caption,
             'mime_type' => $disk->mimeType($path) ?: null,
             'size' => strlen($content),
         ]);

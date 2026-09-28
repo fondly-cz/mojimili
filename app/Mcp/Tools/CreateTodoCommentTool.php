@@ -69,7 +69,7 @@ class CreateTodoCommentTool extends Tool
             $comment->save();
 
             foreach ($files as $file) {
-                TodoCommentAttachment::storeContent($comment, $file['name'], $file['content']);
+                TodoCommentAttachment::storeContent($comment, $file['name'], $file['content'], $file['caption']);
             }
         });
 

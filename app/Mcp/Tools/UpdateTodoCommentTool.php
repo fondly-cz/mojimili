@@ -66,7 +66,7 @@ class UpdateTodoCommentTool extends Tool
             $comment->attachments()->whereIn('id', $removeIds)->get()->each->delete();
 
             foreach ($files as $file) {
-                TodoCommentAttachment::storeContent($comment, $file['name'], $file['content']);
+                TodoCommentAttachment::storeContent($comment, $file['name'], $file['content'], $file['caption']);
             }
         });
 

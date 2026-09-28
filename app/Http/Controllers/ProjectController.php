@@ -68,9 +68,11 @@ class ProjectController extends Controller
             // The list shows only a summary; the thread lives on the todo's detail page.
             'todolists.todos' => fn ($query) => $query->withCount('comments'),
             'todolists.todos.assignee:id,name',
+            'todolists.todos.labels',
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number,url',
             'userRates:id,name',
+            'documents.user:id,name',
         ]);
 
         return inertia('Projects/Show', [
@@ -151,6 +153,7 @@ class ProjectController extends Controller
             'company_employee_id' => 'nullable|exists:company_employees,id',
             'status' => 'nullable|string|in:active,on_hold,done,archived',
             'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
+            ...Project::planningRules(),
         ];
     }
 }

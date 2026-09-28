@@ -23,6 +23,7 @@
                         {{ project.company.name }}
                     </Link>
                     <span v-else>Bez navázané firmy</span>
+                    <span v-if="project.due_date"> · termín {{ new Date(project.due_date).toLocaleDateString('cs-CZ') }}</span>
                 </p>
             </div>
             <div class="flex flex-wrap gap-3">
@@ -54,6 +55,8 @@
             {{ project.description }}
         </p>
 
+        <ProjectDocuments :project-id="project.id" :documents="project.documents" />
+
         <!-- Progress summary -->
         <div class="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
@@ -78,6 +81,12 @@
                 <p class="mt-1 text-xs font-bold text-gray-400">
                     {{ formatCurrency(billing.amount) }}
                     · výchozí sazba {{ project.hourly_rate ? `${formatCurrency(project.hourly_rate)}/h` : 'nenastavena' }}
+                </p>
+                <p v-if="project.budget || project.budget_minutes" class="mt-1 text-xs font-bold" :class="overBudget ? 'text-red-500' : 'text-gray-400'">
+                    Rozpočet
+                    <span v-if="project.budget">{{ formatCurrency(project.budget) }}</span>
+                    <span v-if="project.budget && project.budget_minutes"> / </span>
+                    <span v-if="project.budget_minutes">{{ formatMinutes(project.budget_minutes) }}</span>
                 </p>
             </div>
             <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
@@ -269,6 +278,7 @@ import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import Modal from '../../Components/Modal.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 import TodoNode from '../../Components/TodoNode.vue'
+import ProjectDocuments from '../../Components/ProjectDocuments.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
 import { formatCurrency, formatMinutes, reportAmount } from '../../utils/billing'
 
@@ -308,6 +318,11 @@ const billing = computed(() => {
         invoicedAmount: invoiced.reduce((sum, r) => sum + reportAmount(r), 0),
     }
 })
+
+const overBudget = computed(() =>
+    (props.project.budget && billing.value.amount > Number(props.project.budget))
+    || (props.project.budget_minutes && billing.value.minutes > props.project.budget_minutes)
+)
 
 const rootTodos = (list) => list.todos.filter(t => t.parent_id === null)
 

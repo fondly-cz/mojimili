@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
  */
 class SpawnNextRecurringTodo
 {
+    /** The copy is a new todo, so it keeps neither the completion nor the Freelo origin. */
+    private const NOT_COPIED = ['is_done', 'completed_at', 'completed_by_user_id', 'freelo_id'];
+
     public function handle(Todo $todo): ?Todo
     {
         if (! $todo->recurrence_frequency || ! $todo->is_done || $todo->recurrence_remaining === 0) {
@@ -33,16 +36,18 @@ class SpawnNextRecurringTodo
                 ? (int) CarbonImmutable::parse($todo->due_date)->diffInDays($nextDate)
                 : 0;
 
-            $next = $todo->replicate(['is_done', 'completed_at']);
+            $next = $todo->replicate(self::NOT_COPIED);
             $next->fill([
                 'is_done' => false,
                 'completed_at' => null,
+                'completed_by_user_id' => null,
                 'due_date' => $nextDate,
                 'description' => $todo->recurrence_copy_description ? $todo->description : null,
                 'recurrence_remaining' => $todo->recurrence_remaining === null ? null : $todo->recurrence_remaining - 1,
                 'recurrence_previous_id' => $todo->id,
             ]);
             $next->save();
+            $next->labels()->sync($todo->labels()->pluck('labels.id'));
 
             $this->copyChildren($todo, $next, $shiftDays);
 
@@ -72,16 +77,18 @@ class SpawnNextRecurringTodo
     private function copyChildren(Todo $source, Todo $target, int $shiftDays): void
     {
         foreach ($source->children()->get() as $child) {
-            $copy = $child->replicate(['is_done', 'completed_at']);
+            $copy = $child->replicate(self::NOT_COPIED);
             $copy->fill([
                 'parent_id' => $target->id,
                 'is_done' => false,
                 'completed_at' => null,
+                'completed_by_user_id' => null,
                 'due_date' => $child->due_date ? CarbonImmutable::parse($child->due_date)->addDays($shiftDays) : null,
                 'recurrence_frequency' => null,
                 'recurrence_previous_id' => null,
             ]);
             $copy->save();
+            $copy->labels()->sync($child->labels()->pluck('labels.id'));
 
             $this->copyChildren($child, $copy, $shiftDays);
         }
