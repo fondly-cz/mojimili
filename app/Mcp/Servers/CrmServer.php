@@ -10,8 +10,10 @@ use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\CreateTodoCommentTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
+use App\Mcp\Tools\CreateUserTool;
 use App\Mcp\Tools\CreateWorkReportTool;
 use App\Mcp\Tools\DeleteInvoiceTool;
+use App\Mcp\Tools\DeleteTodoCommentTool;
 use App\Mcp\Tools\DeleteWorkReportTool;
 use App\Mcp\Tools\GetCalculationTool;
 use App\Mcp\Tools\GetInvoiceTool;
@@ -27,6 +29,7 @@ use App\Mcp\Tools\UpdateCalculationTool;
 use App\Mcp\Tools\UpdateInvoiceTool;
 use App\Mcp\Tools\UpdateProjectTool;
 use App\Mcp\Tools\UpdateServiceTool;
+use App\Mcp\Tools\UpdateTodoCommentTool;
 use App\Mcp\Tools\UpdateTodoTool;
 use App\Mcp\Tools\UpdateWorkReportTool;
 use Laravel\Mcp\Server;
@@ -68,9 +71,13 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
    delete-work-report). K jednomu úkolu může vykazovat víc lidí – ID osob zjistíš nástrojem list-users.
    Sazba nového výkazu: vlastní sazba výkazu, jinak sazba osoby v projektu (user_rates u update-project),
    jinak výchozí sazba projektu (hourly_rate u create-project/update-project).
-6. Komentáře k úkolu (jako ve Freelu) přidáš nástrojem create-todo-comment, i s více přílohami v base64.
-   Při přenosu z jiného systému zachovej původní datum (created_at) a autora bez účtu v CRM
-   uveď jménem (author_name). Komentáře úkolů vrací get-project. Popis úkolu může být HTML i Markdown.
+6. Komentáře k úkolu (jako ve Freelu) přidáš nástrojem create-todo-comment, i s obrázky a dalšími
+   přílohami v base64 (víc souborů k jednomu komentáři). Upravíš je update-todo-comment, smažeš
+   delete-todo-comment. Při přenosu z jiného systému zachovej původní datum (created_at); autora
+   nejdřív najdi v list-users, případně ho založ nástrojem create-user, a uveď jeho user_id
+   (jen jméno lze předat jako author_name). Komentáře úkolů vrací get-project. Popis úkolu může být HTML i Markdown.
+7. Nové uživatele (kolegy, externisty) zakládá create-user. Bez role jsou jen osobami pro úkoly, výkazy
+   a komentáře; roli s přístupem do CRM smí přidělit pouze administrátor.
 
 Fakturace (CRM fakturu nevystavuje, jen eviduje její číslo a odkaz a označí výkazy jako vyfakturované):
 1. Nevyfakturované výkazy najdeš nástrojem list-uninvoiced-work-reports (filtr podle projektu, firmy,
@@ -106,10 +113,13 @@ class CrmServer extends Server
         CreateTodolistFromCalculationTool::class,
         UpdateTodoTool::class,
         CreateTodoCommentTool::class,
+        UpdateTodoCommentTool::class,
+        DeleteTodoCommentTool::class,
         CreateWorkReportTool::class,
         UpdateWorkReportTool::class,
         DeleteWorkReportTool::class,
         ListUsersTool::class,
+        CreateUserTool::class,
         ListUninvoicedWorkReportsTool::class,
         ListInvoicesTool::class,
         GetInvoiceTool::class,

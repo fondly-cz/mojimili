@@ -4,12 +4,11 @@ namespace App\Mcp\Tools;
 
 use App\Models\Todo;
 use App\Models\TodoComment;
+use App\Models\TodoCommentAttachment;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -19,10 +18,10 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('create-todo-comment')]
 #[Title('Přidat komentář k úkolu')]
-#[Description('Přidá komentář k úkolu (jako ve Freelu), volitelně s přílohami v base64. Text může být HTML, Markdown i prostý text. Při přenosu z jiného systému lze uvést původní datum (created_at) a jméno autora bez účtu v CRM (author_name). ID úkolů zjistíš nástrojem get-project.')]
+#[Description('Přidá komentář k úkolu (jako ve Freelu), volitelně s obrázky a dalšími přílohami v base64 (každá do 20 MB). Text může být HTML, Markdown i prostý text. Při přenosu z jiného systému lze uvést původní datum (created_at) a jméno autora bez účtu v CRM (author_name). ID úkolů zjistíš nástrojem get-project.')]
 class CreateTodoCommentTool extends Tool
 {
-    use InteractsWithCrmUser;
+    use DecodesCommentAttachments, InteractsWithCrmUser;
 
     public function handle(Request $request): Response
     {
@@ -36,28 +35,16 @@ class CreateTodoCommentTool extends Tool
             'user_id' => 'nullable|integer|exists:users,id',
             'author_name' => 'nullable|string|max:255',
             'created_at' => 'nullable|date',
-            'attachments' => 'nullable|array|max:20',
-            'attachments.*.name' => 'required|string|max:255',
-            'attachments.*.content_base64' => 'required|string',
+            ...$this->attachmentRules(),
         ], [
             'todo_id.exists' => 'Úkol s tímto ID neexistuje. ID úkolů zjistíš nástrojem get-project.',
             'user_id.exists' => 'Uživatel s tímto ID v CRM neexistuje.',
         ]);
 
-        $files = [];
+        [$files, $error] = $this->decodeAttachments($validated['attachments'] ?? []);
 
-        foreach ($validated['attachments'] ?? [] as $attachment) {
-            $content = base64_decode($attachment['content_base64'], true);
-
-            if ($content === false) {
-                return Response::error(sprintf('Příloha "%s" nemá platný obsah v base64.', $attachment['name']));
-            }
-
-            if (strlen($content) > TodoComment::MAX_FILE_KILOBYTES * 1024) {
-                return Response::error(sprintf('Příloha "%s" je větší než %d MB.', $attachment['name'], TodoComment::MAX_FILE_KILOBYTES / 1024));
-            }
-
-            $files[] = ['name' => basename($attachment['name']), 'content' => $content];
+        if ($error) {
+            return Response::error($error);
         }
 
         $comment = new TodoComment(['body' => $validated['body'] ?? null]);
@@ -81,19 +68,8 @@ class CreateTodoCommentTool extends Tool
 
             $comment->save();
 
-            $disk = Storage::disk(TodoComment::DISK);
-
             foreach ($files as $file) {
-                $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $path = TodoComment::directoryFor($todo->id).'/'.Str::random(40).($extension !== '' ? '.'.$extension : '');
-                $disk->put($path, $file['content']);
-
-                $comment->attachments()->create([
-                    'path' => $path,
-                    'original_name' => $file['name'],
-                    'mime_type' => $disk->mimeType($path) ?: null,
-                    'size' => strlen($file['content']),
-                ]);
+                TodoCommentAttachment::storeContent($comment, $file['name'], $file['content']);
             }
         });
 
@@ -103,7 +79,7 @@ class CreateTodoCommentTool extends Tool
             $comment->id,
             $comment->user?->name ?? $comment->author_name ?? 'neznámý',
             count($files),
-            route('projects.show', $todo->todolist->project),
+            route('todos.show', $todo),
         ));
     }
 
@@ -129,12 +105,7 @@ class CreateTodoCommentTool extends Tool
             'created_at' => $schema->string()
                 ->description('Původní datum a čas komentáře ve formátu YYYY-MM-DD HH:MM. Výchozí je teď.'),
 
-            'attachments' => $schema->array()
-                ->description('Přílohy komentáře, každá nejvýš 20 MB.')
-                ->items($schema->object([
-                    'name' => $schema->string()->description('Název souboru včetně přípony.')->required(),
-                    'content_base64' => $schema->string()->description('Obsah souboru v base64.')->required(),
-                ])),
+            'attachments' => $this->attachmentsSchema($schema),
         ];
     }
 }
