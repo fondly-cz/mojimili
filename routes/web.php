@@ -76,7 +76,7 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     Route::post('services/bulk', [ServiceController::class, 'bulkStore'])->name('services.bulk');
     Route::post('services/bulk-delete', [ServiceController::class, 'bulkDelete'])->name('services.bulk-delete');
     Route::resource('services', ServiceController::class)->middleware('role:admin');
-    Route::resource('users', UserController::class)->middleware('role:admin');
+    Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('role:admin');
 
     // MCP / API OAuth klíče (Passport) – generování a stav
     Route::middleware('role:admin')->group(function () {
