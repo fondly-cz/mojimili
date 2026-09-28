@@ -150,6 +150,14 @@
                         </div>
                     </div>
                     <div>
+                        <label :class="labelClass">Nadřazený úkol</label>
+                        <select :value="todo.parent_id || ''" @change="e => update({ parent_id: e.target.value ? Number(e.target.value) : null })" :class="inputClass">
+                            <option value="">— samostatný úkol —</option>
+                            <option v-for="option in parentOptions" :key="option.id" :value="option.id">{{ option.label }}</option>
+                        </select>
+                        <p v-if="$page.props.errors.parent_id" class="mt-1 text-xs text-red-500 font-bold">{{ $page.props.errors.parent_id }}</p>
+                    </div>
+                    <div>
                         <label :class="labelClass">Priorita</label>
                         <select :value="todo.priority || ''" @change="e => update({ priority: e.target.value || null })" :class="inputClass">
                             <option value="">Bez priority</option>
@@ -175,19 +183,9 @@
                 </section>
 
                 <!-- Subtasks -->
-                <section v-if="todo.children.length" :class="cardClass">
-                    <h2 :class="headingClass" class="mb-4">Podúkoly</h2>
-                    <ul class="space-y-2">
-                        <li v-for="child in todo.children" :key="child.id">
-                            <Link
-                                :href="`/todos/${child.id}`"
-                                class="text-sm font-bold hover:text-brand-primary-from transition-colors"
-                                :class="child.is_done ? 'line-through text-gray-400' : 'text-gray-700'"
-                            >
-                                {{ child.name }}
-                            </Link>
-                        </li>
-                    </ul>
+                <section :class="cardClass">
+                    <h2 :class="headingClass" class="mb-4">Podúkoly ({{ todo.children.length }})</h2>
+                    <TodoSubtasks :todo="todo" />
                 </section>
             </div>
         </div>
@@ -225,12 +223,29 @@ import RichEditor from '../../Components/RichEditor.vue'
 import TodoComments from '../../Components/TodoComments.vue'
 import TodoLabels from '../../Components/TodoLabels.vue'
 import TodoRecurrence from '../../Components/TodoRecurrence.vue'
+import TodoSubtasks from '../../Components/TodoSubtasks.vue'
 import TodoWorkReports from '../../Components/TodoWorkReports.vue'
 
 const props = defineProps({
     todo: Object,
     users: Array,
     labels: Array,
+    listTodos: Array,
+})
+
+// Todos of the same list in tree order, without this todo and its own subtasks.
+const parentOptions = computed(() => {
+    const options = []
+    const walk = (parentId, depth) => {
+        for (const item of props.listTodos.filter(t => t.parent_id === parentId)) {
+            if (item.id === props.todo.id) continue
+            options.push({ id: item.id, label: `${'— '.repeat(depth)}${item.name}` })
+            walk(item.id, depth + 1)
+        }
+    }
+    walk(null, 0)
+
+    return options
 })
 
 const cardClass = 'bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm'

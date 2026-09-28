@@ -31,6 +31,7 @@ class UpdateTodoTool extends Tool
         $validated = $request->validate([
             'id' => 'required|integer|exists:todos,id',
             'name' => 'sometimes|string|max:255',
+            'parent_id' => 'sometimes|nullable|integer',
             'description' => 'sometimes|nullable|string',
             'days' => 'sometimes|integer|min:0',
             'is_done' => 'sometimes|boolean',
@@ -53,6 +54,15 @@ class UpdateTodoTool extends Tool
         }
 
         $changed = array_keys($validated);
+
+        if (array_key_exists('parent_id', $validated)) {
+            if ($error = $todo->parentError($validated['parent_id'])) {
+                return Response::error($error);
+            }
+
+            $todo->moveUnder($validated['parent_id']);
+            unset($validated['parent_id']);
+        }
         $validated = $todo->prepareRecurrence($validated);
 
         if (array_key_exists('is_done', $validated)) {
@@ -92,6 +102,9 @@ class UpdateTodoTool extends Tool
 
             'name' => $schema->string()
                 ->description('Nový název úkolu.'),
+
+            'parent_id' => $schema->integer()
+                ->description('Přesune úkol i s jeho podúkoly pod jiný úkol téhož seznamu. null z něj udělá samostatný úkol.'),
 
             'description' => $schema->string()
                 ->description('Nový popis úkolu.'),
