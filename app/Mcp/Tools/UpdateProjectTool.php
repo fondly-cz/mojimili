@@ -34,6 +34,7 @@ class UpdateProjectTool extends Tool
             'company_employee_id' => 'sometimes|nullable|integer|exists:company_employees,id',
             'status' => 'sometimes|string|in:active,on_hold,done,archived',
             'hourly_rate' => 'sometimes|nullable|numeric|min:0',
+            ...Project::planningRules(),
             'user_rates' => 'sometimes|array',
             'user_rates.*.user_id' => 'required|integer|distinct|exists:users,id',
             'user_rates.*.hourly_rate' => 'nullable|numeric|min:0|max:99999999',
@@ -99,6 +100,15 @@ class UpdateProjectTool extends Tool
 
             'hourly_rate' => $schema->number()
                 ->description('Nová výchozí hodinová sazba projektu v Kč bez DPH (už vykázané výkazy se nemění). null sazbu zruší.'),
+
+            'due_date' => $schema->string()
+                ->description('Termín projektu ve formátu YYYY-MM-DD. null termín zruší.'),
+
+            'budget' => $schema->number()
+                ->description('Rozpočet projektu v Kč bez DPH. null rozpočet zruší.'),
+
+            'budget_minutes' => $schema->integer()
+                ->description('Časový rozpočet projektu v minutách. null rozpočet zruší.'),
 
             'user_rates' => $schema->array()
                 ->description('Vlastní hodinové sazby osob v projektu – nahradí všechny dosavadní. Osoba bez sazby (nebo s hourly_rate null) vykazuje za výchozí sazbu projektu. ID osob zjistíš nástrojem list-users.')

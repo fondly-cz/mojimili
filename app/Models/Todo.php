@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Actions\SpawnNextRecurringTodo;
 use App\Enums\RecurrenceFrequency;
+use App\Enums\TodoPriority;
 use App\Support\RichText;
 use Database\Factories\TodoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +27,8 @@ class Todo extends Model
         'completed_at' => 'datetime',
         'due_date' => 'date',
         'days' => 'integer',
+        'estimated_minutes' => 'integer',
+        'priority' => TodoPriority::class,
         'parent_id' => 'integer',
         'recurrence_frequency' => RecurrenceFrequency::class,
         'recurrence_interval' => 'integer',
@@ -55,6 +59,42 @@ class Todo extends Model
     public function setDescriptionAttribute(?string $value): void
     {
         $this->attributes['description'] = RichText::toHtml($value);
+    }
+
+    /**
+     * Stored as "HH:MM"; the database would otherwise hand back seconds.
+     */
+    public function getDueTimeAttribute(?string $value): ?string
+    {
+        return $value === null ? null : substr($value, 0, 5);
+    }
+
+    /**
+     * Validation rules for the fields Freelo has on a task, shared by the web UI and the MCP tools.
+     *
+     * @return array<string, mixed>
+     */
+    public static function detailRules(): array
+    {
+        return [
+            'priority' => ['sometimes', 'nullable', Rule::enum(TodoPriority::class)],
+            'estimated_minutes' => 'sometimes|nullable|integer|min:0|max:1000000',
+            'due_time' => 'sometimes|nullable|date_format:H:i',
+        ];
+    }
+
+    /**
+     * Completion timestamp and person that go with a change of is_done.
+     *
+     * @return array{is_done: bool, completed_at: mixed, completed_by_user_id: ?int}
+     */
+    public static function completionAttributes(bool $isDone, ?int $userId): array
+    {
+        return [
+            'is_done' => $isDone,
+            'completed_at' => $isDone ? now() : null,
+            'completed_by_user_id' => $isDone ? $userId : null,
+        ];
     }
 
     /**
@@ -169,6 +209,30 @@ class Todo extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function completer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by_user_id');
+    }
+
+    /**
+     * @return BelongsToMany<Label, $this>
+     */
+    public function labels(): BelongsToMany
+    {
+        return $this->belongsToMany(Label::class)->orderBy('name');
     }
 
     /**

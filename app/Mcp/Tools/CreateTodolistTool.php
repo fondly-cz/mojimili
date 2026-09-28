@@ -2,11 +2,14 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\TodoPriority;
+use App\Models\Label;
 use App\Models\Project;
 use App\Models\Todolist;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -23,7 +26,7 @@ class CreateTodolistTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -38,6 +41,11 @@ class CreateTodolistTool extends Tool
             'todos.*.description' => 'nullable|string',
             'todos.*.days' => 'nullable|integer|min:0',
             'todos.*.due_date' => 'nullable|date',
+            'todos.*.due_time' => 'nullable|date_format:H:i',
+            'todos.*.priority' => ['nullable', Rule::enum(TodoPriority::class)],
+            'todos.*.estimated_minutes' => 'nullable|integer|min:0|max:1000000',
+            'todos.*.labels' => 'nullable|array|max:50',
+            'todos.*.labels.*' => 'string|max:100',
         ], [
             'project_id.exists' => 'Projekt s tímto ID neexistuje. Seznam získáš nástrojem list-projects, nový založíš nástrojem create-project.',
             'todos.*.key.required' => 'Každému úkolu dej vlastní `key`, aby šlo nastavit zanoření přes `parent_key`.',
@@ -45,14 +53,14 @@ class CreateTodolistTool extends Tool
 
         $project = Project::findOrFail($validated['project_id']);
 
-        $todolist = DB::transaction(function () use ($project, $validated) {
+        $todolist = DB::transaction(function () use ($project, $validated, $user) {
             $todolist = $project->todolists()->create([
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
                 'sort_order' => $project->todolists()->max('sort_order') + 1,
             ]);
 
-            $this->createTodos($todolist, $validated['todos'] ?? []);
+            $this->createTodos($todolist, $validated['todos'] ?? [], $user->id);
 
             return $todolist->load('todos');
         });
@@ -72,7 +80,7 @@ class CreateTodolistTool extends Tool
      *
      * @param  array<int, array<string, mixed>>  $todos
      */
-    private function createTodos(Todolist $todolist, array $todos): void
+    private function createTodos(Todolist $todolist, array $todos, int $userId): void
     {
         $created = [];
 
@@ -82,8 +90,16 @@ class CreateTodolistTool extends Tool
                 'description' => $todo['description'] ?? null,
                 'days' => $todo['days'] ?? 0,
                 'due_date' => $todo['due_date'] ?? null,
+                'due_time' => $todo['due_time'] ?? null,
+                'priority' => $todo['priority'] ?? null,
+                'estimated_minutes' => $todo['estimated_minutes'] ?? null,
+                'created_by_user_id' => $userId,
                 'sort_order' => $index,
             ]);
+
+            if (! empty($todo['labels'])) {
+                $created[$todo['key']]->labels()->sync(Label::idsForNames($todo['labels']));
+            }
         }
 
         foreach ($todos as $todo) {
@@ -136,6 +152,20 @@ class CreateTodolistTool extends Tool
 
                     'due_date' => $schema->string()
                         ->description('Termín úkolu ve formátu YYYY-MM-DD.'),
+
+                    'due_time' => $schema->string()
+                        ->description('Čas termínu ve formátu HH:MM.'),
+
+                    'priority' => $schema->string()
+                        ->enum(array_column(TodoPriority::cases(), 'value'))
+                        ->description('Priorita úkolu: high, medium, low.'),
+
+                    'estimated_minutes' => $schema->integer()
+                        ->description('Odhadovaný čas práce v minutách.'),
+
+                    'labels' => $schema->array()
+                        ->description('Názvy štítků; chybějící štítky se založí.')
+                        ->items($schema->string()),
                 ])),
         ];
     }

@@ -20,6 +20,7 @@ trait DecodesCommentAttachments
             'attachments' => 'nullable|array|max:20',
             'attachments.*.name' => 'required|string|max:255',
             'attachments.*.content_base64' => 'required|string',
+            'attachments.*.caption' => 'nullable|string|max:255',
         ];
     }
 
@@ -30,14 +31,15 @@ trait DecodesCommentAttachments
             ->items($schema->object([
                 'name' => $schema->string()->description('Název souboru včetně přípony, např. "logo.png".')->required(),
                 'content_base64' => $schema->string()->description('Obsah souboru v base64.')->required(),
+                'caption' => $schema->string()->description('Volitelný popisek přílohy.'),
             ]));
     }
 
     /**
      * Decodes and size-checks the attachments; returns the files, or an error message.
      *
-     * @param  array<int, array{name: string, content_base64: string}>  $attachments
-     * @return array{0: list<array{name: string, content: string}>, 1: ?string}
+     * @param  array<int, array{name: string, content_base64: string, caption?: ?string}>  $attachments
+     * @return array{0: list<array{name: string, content: string, caption: ?string}>, 1: ?string}
      */
     protected function decodeAttachments(array $attachments): array
     {
@@ -56,7 +58,7 @@ trait DecodesCommentAttachments
                 return [[], sprintf('Příloha "%s" je větší než %d MB.', $attachment['name'], TodoComment::MAX_FILE_KILOBYTES / 1024)];
             }
 
-            $files[] = ['name' => basename($attachment['name']), 'content' => $content];
+            $files[] = ['name' => basename($attachment['name']), 'content' => $content, 'caption' => $attachment['caption'] ?? null];
         }
 
         return [$files, null];

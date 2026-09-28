@@ -82,6 +82,8 @@
                             <p v-if="form.errors.hourly_rate" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ form.errors.hourly_rate }}</p>
                         </div>
 
+                        <ProjectPlanningFields :form="form" />
+
                         <div class="md:col-span-2">
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Popis</label>
                             <textarea
@@ -136,6 +138,7 @@
 import { Link, useForm } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
+import ProjectPlanningFields from '../../Components/ProjectPlanningFields.vue'
 
 const props = defineProps({
     project: Object,
@@ -152,6 +155,9 @@ const form = useForm({
     company_id: props.project.company_id || '',
     status: props.project.status,
     hourly_rate: props.project.hourly_rate ?? '',
+    due_date: props.project.due_date ?? '',
+    budget: props.project.budget ?? '',
+    budget_minutes: props.project.budget_minutes ?? '',
     user_rates: props.users.map(user => ({ user_id: user.id, hourly_rate: userRate(user.id) })),
 })
 

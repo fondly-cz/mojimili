@@ -20,8 +20,25 @@
                     >
                         {{ todo.name }}
                     </Link>
+                    <span v-if="todo.priority" class="px-2 py-0.5 text-[8px] font-black rounded-lg uppercase tracking-widest" :class="priorityStyles[todo.priority]" title="Priorita">
+                        {{ priorityLabels[todo.priority] }}
+                    </span>
+                    <span
+                        v-for="label in todo.labels || []"
+                        :key="label.id"
+                        class="px-2 py-0.5 text-[8px] font-black rounded-lg text-white uppercase tracking-widest"
+                        :style="{ backgroundColor: label.color }"
+                    >
+                        {{ label.name }}
+                    </span>
                     <span v-if="todo.days > 0" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest">
                         {{ todo.days }} dní
+                    </span>
+                    <span v-if="todo.estimated_minutes" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest" title="Odhadovaný čas">
+                        odhad {{ formatMinutes(todo.estimated_minutes) }}
+                    </span>
+                    <span v-if="todo.due_time" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest" title="Čas termínu">
+                        do {{ todo.due_time }}
                     </span>
                     <span v-if="todo.calculation_item_id" class="px-2 py-0.5 bg-blue-50 text-[8px] font-black rounded-lg text-blue-600 uppercase tracking-widest border border-blue-100" title="Vzniklo z položky kalkulace">
                         z kalkulace
@@ -123,6 +140,13 @@ const props = defineProps({
 })
 
 defineEmits(['toggle', 'assign', 'due-date', 'add-child', 'remove'])
+
+const priorityLabels = { high: 'Vysoká', medium: 'Střední', low: 'Nízká' }
+const priorityStyles = {
+    high: 'bg-red-50 text-red-600',
+    medium: 'bg-amber-50 text-amber-600',
+    low: 'bg-gray-50 text-gray-400',
+}
 
 const children = computed(() => props.allTodos.filter(t => t.parent_id === props.todo.id))
 
