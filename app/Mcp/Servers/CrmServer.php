@@ -10,6 +10,7 @@ use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\CreateTodoCommentTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
+use App\Mcp\Tools\CreateTodoTool;
 use App\Mcp\Tools\CreateUserTool;
 use App\Mcp\Tools\CreateWorkReportTool;
 use App\Mcp\Tools\DeleteInvoiceTool;
@@ -111,6 +112,7 @@ class CrmServer extends Server
         UpdateProjectTool::class,
         CreateTodolistTool::class,
         CreateTodolistFromCalculationTool::class,
+        CreateTodoTool::class,
         UpdateTodoTool::class,
         CreateTodoCommentTool::class,
         UpdateTodoCommentTool::class,

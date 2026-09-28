@@ -143,6 +143,62 @@ class Todo extends Model
     }
 
     /**
+     * Why the todo cannot be moved under the given parent, or null when it can (null parent = top level).
+     */
+    public function parentError(?int $parentId): ?string
+    {
+        if ($parentId === null) {
+            return null;
+        }
+
+        if ($parentId === $this->id) {
+            return 'Úkol nelze vložit sám do sebe.';
+        }
+
+        $parent = Todo::find($parentId);
+
+        if (! $parent || $parent->todolist_id !== $this->todolist_id) {
+            return 'Nadřazený úkol nepatří do stejného seznamu.';
+        }
+
+        $parentRecurs = false;
+        for ($ancestor = $parent; $ancestor; $ancestor = $ancestor->parent) {
+            if ($ancestor->id === $this->id) {
+                return 'Úkol nelze vložit do vlastního podúkolu.';
+            }
+            $parentRecurs = $parentRecurs || (bool) $ancestor->recurrence_frequency;
+        }
+
+        if ($parentRecurs && ($this->recurrence_frequency || $this->hasRecurringDescendant($this))) {
+            return 'Opakování nelze nastavit zároveň na úkolu a jeho nadřazeném úkolu nebo podúkolu.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Moves the todo (with its subtasks) under another todo of the same list, or to the top level.
+     *
+     * @throws ValidationException
+     */
+    public function moveUnder(?int $parentId): void
+    {
+        if ($parentId === $this->parent_id) {
+            return;
+        }
+
+        if ($error = $this->parentError($parentId)) {
+            throw ValidationException::withMessages(['parent_id' => $error]);
+        }
+
+        $this->update([
+            'parent_id' => $parentId,
+            // Lands at the end of its new siblings.
+            'sort_order' => Todo::where('todolist_id', $this->todolist_id)->where('parent_id', $parentId)->max('sort_order') + 1,
+        ]);
+    }
+
+    /**
      * Freelo forbids recurrence on both a todo and its subtask; the copies would multiply.
      */
     public function hasRecurringRelative(): bool
