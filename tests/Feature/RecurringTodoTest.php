@@ -72,7 +72,7 @@ class RecurringTodoTest extends TestCase
         $next = $this->nextOf($todo);
         $this->assertNotNull($next);
         $this->assertSame('Záloha webu', $next->name);
-        $this->assertSame('Stáhnout DB', $next->description);
+        $this->assertSame('<p>Stáhnout DB</p>', $next->description);
         $this->assertSame($user->id, $next->assigned_user_id);
         $this->assertSame($todo->todolist_id, $next->todolist_id);
         $this->assertFalse($next->is_done);

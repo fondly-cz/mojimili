@@ -20,7 +20,7 @@ class TodoCommentController extends Controller
         $comment = new TodoComment(['body' => $validated['body'] ?? null]);
 
         if ($comment->body === null && $files === []) {
-            throw ValidationException::withMessages(['body' => 'Příspěvek musí obsahovat text nebo přílohu.']);
+            throw ValidationException::withMessages(['body' => 'Komentář musí obsahovat text nebo přílohu.']);
         }
 
         DB::transaction(function () use ($todo, $comment, $request, $files) {
@@ -33,7 +33,7 @@ class TodoCommentController extends Controller
             }
         });
 
-        return back()->with('success', 'Příspěvek byl přidán.');
+        return back()->with('success', 'Komentář byl přidán.');
     }
 
     public function update(Request $request, TodoComment $comment)
@@ -52,7 +52,7 @@ class TodoCommentController extends Controller
         $keptAttachments = $comment->attachments->whereNotIn('id', $removeIds)->count();
 
         if ($comment->body === null && $keptAttachments === 0 && $files === []) {
-            throw ValidationException::withMessages(['body' => 'Příspěvek musí obsahovat text nebo přílohu.']);
+            throw ValidationException::withMessages(['body' => 'Komentář musí obsahovat text nebo přílohu.']);
         }
 
         DB::transaction(function () use ($comment, $removeIds, $files) {
@@ -65,7 +65,7 @@ class TodoCommentController extends Controller
             }
         });
 
-        return back()->with('success', 'Příspěvek byl upraven.');
+        return back()->with('success', 'Komentář byl upraven.');
     }
 
     public function destroy(Request $request, TodoComment $comment)
@@ -74,7 +74,7 @@ class TodoCommentController extends Controller
 
         $comment->delete();
 
-        return back()->with('success', 'Příspěvek byl smazán.');
+        return back()->with('success', 'Komentář byl smazán.');
     }
 
     /**

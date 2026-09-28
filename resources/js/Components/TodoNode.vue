@@ -13,12 +13,13 @@
 
             <div class="grow min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                    <h4
-                        class="text-sm font-black text-gray-900 font-heading leading-tight"
+                    <Link
+                        :href="`/todos/${todo.id}`"
+                        class="text-sm font-black text-gray-900 font-heading leading-tight hover:text-brand-primary-from transition-colors"
                         :class="{ 'line-through text-gray-400': todo.is_done }"
                     >
                         {{ todo.name }}
-                    </h4>
+                    </Link>
                     <span v-if="todo.days > 0" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest">
                         {{ todo.days }} dní
                     </span>
@@ -28,11 +29,16 @@
                     <span v-if="children.length > 0" class="px-2 py-0.5 bg-gray-100 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest">
                         {{ doneChildren }}/{{ children.length }} podúkolů
                     </span>
+                    <span v-if="todo.recurrence_frequency" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-brand-primary-from uppercase tracking-widest" title="Opakovaný úkol">
+                        ↻ opakuje se
+                    </span>
+                    <span v-if="reportedMinutes > 0" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest" title="Vykázaný čas">
+                        {{ formatMinutes(reportedMinutes) }}
+                    </span>
+                    <span v-if="todo.comments_count > 0" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest" title="Komentáře">
+                        💬 {{ todo.comments_count }}
+                    </span>
                 </div>
-
-                <p v-if="todo.description" class="mt-1.5 text-xs font-medium text-gray-400 leading-relaxed">
-                    {{ todo.description }}
-                </p>
 
                 <div class="mt-3 flex flex-wrap items-center gap-3">
                     <select
@@ -58,21 +64,32 @@
                     >
                         + Podúkol
                     </button>
-
-                    <button
-                        type="button"
-                        @click="$emit('remove', todo)"
-                        class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                        Smazat
-                    </button>
                 </div>
+            </div>
 
-                <TodoRecurrence :todo="todo" />
-
-                <TodoWorkReports :todo="todo" :users="users" :default-rate="defaultRate" :user-rates="userRates" />
-
-                <TodoComments :todo="todo" />
+            <div class="flex shrink-0 items-center gap-1">
+                <Link
+                    :href="`/todos/${todo.id}`"
+                    class="p-2 rounded-xl text-gray-300 hover:text-brand-primary-from hover:bg-gray-50 transition-colors"
+                    title="Detail úkolu"
+                    aria-label="Detail úkolu"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </Link>
+                <button
+                    type="button"
+                    @click="$emit('remove', todo)"
+                    class="p-2 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Smazat úkol"
+                    aria-label="Smazat úkol"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                </button>
             </div>
         </div>
 
@@ -84,8 +101,6 @@
                 :todo="child"
                 :all-todos="allTodos"
                 :users="users"
-                :default-rate="defaultRate"
-                :user-rates="userRates"
                 @toggle="$emit('toggle', $event)"
                 @assign="$emit('assign', $event)"
                 @due-date="$emit('due-date', $event)"
@@ -98,16 +113,13 @@
 
 <script setup>
 import { computed } from 'vue'
-import TodoRecurrence from './TodoRecurrence.vue'
-import TodoWorkReports from './TodoWorkReports.vue'
-import TodoComments from './TodoComments.vue'
+import { Link } from '@inertiajs/vue3'
+import { formatMinutes } from '../utils/billing'
 
 const props = defineProps({
     todo: Object,
     allTodos: Array,
     users: Array,
-    defaultRate: [String, Number],
-    userRates: Object,
 })
 
 defineEmits(['toggle', 'assign', 'due-date', 'add-child', 'remove'])
@@ -115,4 +127,6 @@ defineEmits(['toggle', 'assign', 'due-date', 'add-child', 'remove'])
 const children = computed(() => props.allTodos.filter(t => t.parent_id === props.todo.id))
 
 const doneChildren = computed(() => children.value.filter(t => t.is_done).length)
+
+const reportedMinutes = computed(() => (props.todo.work_reports || []).reduce((sum, r) => sum + r.minutes, 0))
 </script>

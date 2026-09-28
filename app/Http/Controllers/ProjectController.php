@@ -65,11 +65,11 @@ class ProjectController extends Controller
             'companyEmployee',
             'user',
             'todolists.calculation:id,customer_name,customer_company',
+            // The list shows only a summary; the thread lives on the todo's detail page.
+            'todolists.todos' => fn ($query) => $query->withCount('comments'),
             'todolists.todos.assignee:id,name',
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number,url',
-            'todolists.todos.comments.user:id,name',
-            'todolists.todos.comments.attachments',
             'userRates:id,name',
         ]);
 

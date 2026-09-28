@@ -1,6 +1,7 @@
 <template>
     <div class="mt-3">
         <button
+            v-if="!expanded"
             type="button"
             @click="open = !open"
             class="inline-flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors"
@@ -136,6 +137,8 @@ const props = defineProps({
     users: Array,
     defaultRate: [String, Number],
     userRates: { type: Object, default: () => ({}) },
+    // On the todo's detail page the reports are always shown, without the toggle.
+    expanded: { type: Boolean, default: false },
 })
 
 // Mirrors Project::rateFor(): the person's rate in the project, then the project default.
@@ -145,7 +148,7 @@ const page = usePage()
 
 const inputClass = 'block w-full px-3 py-2 bg-white border-gray-100 rounded-xl text-xs font-semibold text-gray-700 focus:ring-brand-primary-from focus:border-brand-primary-from'
 
-const open = ref(false)
+const open = ref(props.expanded)
 const reports = computed(() => props.todo.work_reports || [])
 const totalMinutes = computed(() => reports.value.reduce((sum, r) => sum + r.minutes, 0))
 const totalAmount = computed(() => reports.value.reduce((sum, r) => sum + reportAmount(r), 0))

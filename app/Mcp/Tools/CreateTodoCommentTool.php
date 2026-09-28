@@ -18,8 +18,8 @@ use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('create-todo-comment')]
-#[Title('Přidat příspěvek k úkolu')]
-#[Description('Přidá příspěvek do vlákna úkolu (jako komentář ve Freelu), volitelně s přílohami v base64. Text může být HTML, Markdown i prostý text. Při přenosu z jiného systému lze uvést původní datum (created_at) a jméno autora bez účtu v CRM (author_name). ID úkolů zjistíš nástrojem get-project.')]
+#[Title('Přidat komentář k úkolu')]
+#[Description('Přidá komentář k úkolu (jako ve Freelu), volitelně s přílohami v base64. Text může být HTML, Markdown i prostý text. Při přenosu z jiného systému lze uvést původní datum (created_at) a jméno autora bez účtu v CRM (author_name). ID úkolů zjistíš nástrojem get-project.')]
 class CreateTodoCommentTool extends Tool
 {
     use InteractsWithCrmUser;
@@ -63,7 +63,7 @@ class CreateTodoCommentTool extends Tool
         $comment = new TodoComment(['body' => $validated['body'] ?? null]);
 
         if ($comment->body === null && $files === []) {
-            return Response::error('Příspěvek musí obsahovat text nebo přílohu.');
+            return Response::error('Komentář musí obsahovat text nebo přílohu.');
         }
 
         $todo = Todo::with('todolist.project')->findOrFail($validated['todo_id']);
@@ -98,7 +98,7 @@ class CreateTodoCommentTool extends Tool
         });
 
         return Response::text(sprintf(
-            "K úkolu \"%s\" byl přidán příspěvek (comment_id %d, autor %s, příloh: %d).\nDetail v CRM: %s",
+            "K úkolu \"%s\" byl přidán komentář (comment_id %d, autor %s, příloh: %d).\nDetail v CRM: %s",
             $todo->name,
             $comment->id,
             $comment->user?->name ?? $comment->author_name ?? 'neznámý',
@@ -114,11 +114,11 @@ class CreateTodoCommentTool extends Tool
     {
         return [
             'todo_id' => $schema->integer()
-                ->description('ID úkolu, do jehož vlákna se příspěvek přidá.')
+                ->description('ID úkolu, ke kterému se komentář přidá.')
                 ->required(),
 
             'body' => $schema->string()
-                ->description('Text příspěvku – HTML, Markdown nebo prostý text. Může chybět, pokud příspěvek nese jen přílohy.'),
+                ->description('Text komentáře – HTML, Markdown nebo prostý text. Může chybět, pokud komentář nese jen přílohy.'),
 
             'user_id' => $schema->integer()
                 ->description('ID uživatele CRM, který je autorem. Výchozí je přihlášený uživatel (neuvedeš-li author_name).'),
@@ -127,10 +127,10 @@ class CreateTodoCommentTool extends Tool
                 ->description('Jméno autora, který v CRM nemá účet (např. při přenosu z Freela). Zobrazí se místo uživatele.'),
 
             'created_at' => $schema->string()
-                ->description('Původní datum a čas příspěvku ve formátu YYYY-MM-DD HH:MM. Výchozí je teď.'),
+                ->description('Původní datum a čas komentáře ve formátu YYYY-MM-DD HH:MM. Výchozí je teď.'),
 
             'attachments' => $schema->array()
-                ->description('Přílohy příspěvku, každá nejvýš 20 MB.')
+                ->description('Přílohy komentáře, každá nejvýš 20 MB.')
                 ->items($schema->object([
                     'name' => $schema->string()->description('Název souboru včetně přípony.')->required(),
                     'content_base64' => $schema->string()->description('Obsah souboru v base64.')->required(),

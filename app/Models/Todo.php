@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Actions\SpawnNextRecurringTodo;
 use App\Enums\RecurrenceFrequency;
+use App\Support\RichText;
 use Database\Factories\TodoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -45,6 +46,15 @@ class Todo extends Model
         static::deleted(function (Todo $todo) {
             TodoComment::purgeFilesFor([$todo->id]);
         });
+    }
+
+    /**
+     * The description is written in the rich editor and rendered as HTML; plain text
+     * and Markdown (e.g. from the MCP tools) are converted, everything is sanitized.
+     */
+    public function setDescriptionAttribute(?string $value): void
+    {
+        $this->attributes['description'] = RichText::toHtml($value);
     }
 
     /**
