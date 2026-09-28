@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Todo;
 use App\Models\Todolist;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class TodoController extends Controller
@@ -34,6 +35,25 @@ class TodoController extends Controller
         return back()->with('success', 'Úkol byl přidán.');
     }
 
+    public function show(Todo $todo)
+    {
+        $todo->load([
+            'todolist.project.userRates:id,name',
+            'parent:id,name',
+            'children:id,todolist_id,parent_id,name,is_done',
+            'assignee:id,name',
+            'workReports.user:id,name',
+            'workReports.invoice:id,number,url',
+            'comments.user:id,name',
+            'comments.attachments',
+        ]);
+
+        return inertia('Todos/Show', [
+            'todo' => $todo,
+            'users' => User::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
     public function update(Request $request, Todo $todo)
     {
         $validated = $request->validate([
@@ -62,8 +82,11 @@ class TodoController extends Controller
 
     public function destroy(Todo $todo)
     {
+        $project = $todo->todolist->project;
+
         $todo->delete();
 
-        return back()->with('success', 'Úkol byl smazán.');
+        // Deleting from the todo's own detail page must not lead back to it.
+        return redirect()->route('projects.show', $project)->with('success', 'Úkol byl smazán.');
     }
 }

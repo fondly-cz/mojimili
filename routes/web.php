@@ -51,6 +51,7 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     Route::post('todolists/{todolist}/reorder', [TodolistController::class, 'reorder'])->name('todolists.reorder');
 
     Route::post('todolists/{todolist}/todos', [TodoController::class, 'store'])->name('todolists.todos.store');
+    Route::get('todos/{todo}', [TodoController::class, 'show'])->name('todos.show');
     Route::patch('todos/{todo}', [TodoController::class, 'update'])->name('todos.update');
     Route::delete('todos/{todo}', [TodoController::class, 'destroy'])->name('todos.destroy');
 

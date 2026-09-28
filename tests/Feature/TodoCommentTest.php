@@ -186,17 +186,33 @@ class TodoCommentTest extends TestCase
         $this->get($attachment->url)->assertRedirect();
     }
 
-    public function test_the_project_page_includes_the_thread(): void
+    public function test_the_todo_detail_page_includes_the_thread(): void
     {
         $user = $this->manager();
         $todo = Todo::factory()->create();
         TodoComment::factory()->create(['todo_id' => $todo->id, 'user_id' => $user->id, 'body' => '<p>Ahoj</p>']);
 
         $this->actingAs($user)
+            ->get("/todos/{$todo->id}")
+            ->assertInertia(fn ($page) => $page
+                ->component('Todos/Show')
+                ->where('todo.comments.0.body', '<p>Ahoj</p>')
+                ->where('todo.comments.0.user.name', $user->name)
+                ->where('todo.todolist.project.id', $todo->todolist->project_id)
+            );
+    }
+
+    public function test_the_project_page_lists_only_the_comment_count(): void
+    {
+        $user = $this->manager();
+        $todo = Todo::factory()->create();
+        TodoComment::factory()->count(2)->create(['todo_id' => $todo->id]);
+
+        $this->actingAs($user)
             ->get("/projects/{$todo->todolist->project_id}")
             ->assertInertia(fn ($page) => $page
-                ->where('project.todolists.0.todos.0.comments.0.body', '<p>Ahoj</p>')
-                ->where('project.todolists.0.todos.0.comments.0.user.name', $user->name)
+                ->where('project.todolists.0.todos.0.comments_count', 2)
+                ->missing('project.todolists.0.todos.0.comments')
             );
     }
 

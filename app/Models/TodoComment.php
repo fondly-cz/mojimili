@@ -2,17 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\RichText;
 use Database\Factories\TodoCommentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
-use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 
 /**
- * A post in a todo's thread (Freelo-style comment) with optional file attachments.
+ * A comment in a todo's thread (as in Freelo) with optional file attachments.
  */
 class TodoComment extends Model
 {
@@ -55,39 +54,11 @@ class TodoComment extends Model
     }
 
     /**
-     * The body is rendered as HTML. Plain text or Markdown (e.g. from the MCP tools) is
-     * converted like a calculation description, and everything is sanitized before storing.
+     * The body is rendered as HTML; see RichText for the conversion and sanitizing.
      */
     public function setBodyAttribute(?string $value): void
     {
-        $html = Calculation::descriptionToHtml($value);
-        $html = $html === null ? '' : self::sanitize($html);
-
-        $this->attributes['body'] = self::isBlank($html) ? null : $html;
-    }
-
-    /**
-     * An editor left untouched still sends markup like "<p><br></p>"; that is no text.
-     */
-    private static function isBlank(string $html): bool
-    {
-        $text = html_entity_decode(strip_tags($html, '<img><hr><table>'), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-        return trim(str_replace("\u{00A0}", ' ', $text)) === '';
-    }
-
-    public static function sanitize(string $html): string
-    {
-        $config = (new HtmlSanitizerConfig)
-            ->allowSafeElements()
-            ->allowAttribute('class', ['li', 'ul', 'ol', 'code', 'pre'])
-            ->allowLinkSchemes(['http', 'https', 'mailto', 'tel'])
-            ->allowRelativeLinks()
-            ->forceAttribute('a', 'rel', 'noopener noreferrer')
-            ->forceAttribute('a', 'target', '_blank')
-            ->withMaxInputLength(500_000);
-
-        return trim((new HtmlSanitizer($config))->sanitize($html));
+        $this->attributes['body'] = RichText::toHtml($value);
     }
 
     /**
