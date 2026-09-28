@@ -11,7 +11,9 @@ use App\Mcp\Tools\UpdateTodoCommentTool;
 use App\Models\Todo;
 use App\Models\TodoComment;
 use App\Models\User;
+use App\Support\RemoteFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -56,6 +58,67 @@ class CommentAndUserToolsTest extends TestCase
         $this->assertSame($user->id, $comment->user_id);
         $this->assertSame([true, true, false], $comment->attachments->pluck('is_image')->all());
         $this->assertSame('image/png', $comment->attachments[1]->mime_type);
+    }
+
+    /**
+     * Resolves every host to the given IP instead of asking DNS.
+     */
+    private function fakeDns(string $ip): void
+    {
+        $this->app->instance(RemoteFile::class, new class($ip) extends RemoteFile
+        {
+            public function __construct(private string $ip) {}
+
+            protected function resolve(string $host): array
+            {
+                return [$this->ip];
+            }
+        });
+    }
+
+    public function test_an_attachment_is_downloaded_from_a_url_following_redirects(): void
+    {
+        $this->fakeDns('93.184.216.34');
+        Http::fake([
+            'https://files.example.com/d/abc' => Http::response('', 302, ['Location' => 'https://cdn.example.com/x']),
+            'https://cdn.example.com/x' => Http::response(base64_decode(self::PNG), 200, [
+                'Content-Disposition' => 'attachment; filename="screenshot.png"',
+            ]),
+        ]);
+        $todo = Todo::factory()->create();
+
+        CrmServer::actingAs($this->manager())
+            ->tool(CreateTodoCommentTool::class, [
+                'todo_id' => $todo->id,
+                'attachments' => [
+                    ['url' => 'https://files.example.com/d/abc'],
+                    ['url' => 'https://cdn.example.com/x', 'name' => 'vlastni.png'],
+                ],
+            ])
+            ->assertOk();
+
+        $attachments = $todo->comments()->firstOrFail()->attachments;
+        $this->assertEqualsCanonicalizing(['screenshot.png', 'vlastni.png'], $attachments->pluck('original_name')->all());
+        $this->assertTrue($attachments->every->is_image);
+    }
+
+    public function test_a_url_attachment_must_be_public_https(): void
+    {
+        $this->fakeDns('10.0.0.5');
+        Http::fake();
+        $todo = Todo::factory()->create();
+
+        foreach (['https://intranet.example.com/a.png', 'http://example.com/a.png', 'https://127.0.0.1/a.png'] as $url) {
+            CrmServer::actingAs($this->manager())
+                ->tool(CreateTodoCommentTool::class, [
+                    'todo_id' => $todo->id,
+                    'attachments' => [['url' => $url]],
+                ])
+                ->assertHasErrors(['nepodařilo stáhnout']);
+        }
+
+        Http::assertNothingSent();
+        $this->assertSame(0, $todo->comments()->count());
     }
 
     public function test_an_invalid_attachment_is_rejected_without_creating_the_comment(): void

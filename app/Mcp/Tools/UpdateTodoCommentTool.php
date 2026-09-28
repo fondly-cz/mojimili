@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('update-todo-comment')]
 #[Title('Upravit komentář k úkolu')]
-#[Description('Upraví komentář k úkolu – změní text, přidá další přílohy (obrázky i jiné soubory v base64) nebo odebere stávající. Upravit smí jen autor komentáře nebo administrátor. ID komentářů a příloh vrací get-project.')]
+#[Description('Upraví komentář k úkolu – změní text, přidá další přílohy (obrázky i jiné soubory přes url ke stažení, případně v base64) nebo odebere stávající. Upravit smí jen autor komentáře nebo administrátor. ID komentářů a příloh vrací get-project.')]
 class UpdateTodoCommentTool extends Tool
 {
     use DecodesCommentAttachments, InteractsWithCrmUser;
