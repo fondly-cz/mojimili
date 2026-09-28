@@ -5,6 +5,7 @@ namespace Tests\Feature\Mcp;
 use App\Enums\UserRole;
 use App\Mcp\Servers\CrmServer;
 use App\Mcp\Tools\CreateTodoCommentTool;
+use App\Mcp\Tools\CreateUploadLinkTool;
 use App\Mcp\Tools\CreateUserTool;
 use App\Mcp\Tools\DeleteTodoCommentTool;
 use App\Mcp\Tools\UpdateTodoCommentTool;
@@ -13,8 +14,10 @@ use App\Models\TodoComment;
 use App\Models\User;
 use App\Support\RemoteFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class CommentAndUserToolsTest extends TestCase
@@ -118,6 +121,55 @@ class CommentAndUserToolsTest extends TestCase
         }
 
         Http::assertNothingSent();
+        $this->assertSame(0, $todo->comments()->count());
+    }
+
+    public function test_a_local_file_is_uploaded_to_a_signed_link_and_attached_by_its_id(): void
+    {
+        $user = $this->manager();
+        $todo = Todo::factory()->create();
+
+        CrmServer::actingAs($user)->tool(CreateUploadLinkTool::class)->assertOk()->assertSee('curl');
+
+        $url = URL::temporarySignedRoute('mcp-uploads.store', now()->addHour(), ['user' => $user]);
+        $uploads = $this->post($url, [
+            'files' => [UploadedFile::fake()->image('obrazek.png'), UploadedFile::fake()->create('zadani.pdf', 10)],
+        ])->assertCreated()->json('uploads');
+
+        CrmServer::actingAs($user)
+            ->tool(CreateTodoCommentTool::class, [
+                'todo_id' => $todo->id,
+                'attachments' => [
+                    ['upload_id' => $uploads[0]['upload_id']],
+                    ['upload_id' => $uploads[1]['upload_id'], 'name' => 'prejmenovano.pdf'],
+                ],
+            ])
+            ->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            ['obrazek.png', 'prejmenovano.pdf'],
+            $todo->comments()->firstOrFail()->attachments->pluck('original_name')->all(),
+        );
+    }
+
+    public function test_uploads_need_a_valid_signature_and_stay_private_to_their_user(): void
+    {
+        $user = $this->manager();
+        $todo = Todo::factory()->create();
+
+        $this->post(route('mcp-uploads.store', $user), ['file' => UploadedFile::fake()->image('a.png')])
+            ->assertForbidden();
+
+        $url = URL::temporarySignedRoute('mcp-uploads.store', now()->addHour(), ['user' => $user]);
+        $id = $this->post($url, ['file' => UploadedFile::fake()->image('a.png')])->json('uploads.0.upload_id');
+
+        CrmServer::actingAs($this->manager())
+            ->tool(CreateTodoCommentTool::class, [
+                'todo_id' => $todo->id,
+                'attachments' => [['upload_id' => $id]],
+            ])
+            ->assertHasErrors(['neexistuje']);
+
         $this->assertSame(0, $todo->comments()->count());
     }
 
