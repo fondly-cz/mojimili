@@ -101,10 +101,12 @@ class GetProjectTool extends Tool
                     ])->all(),
                     'comments' => $todo->comments->map(fn (TodoComment $comment) => [
                         'id' => $comment->id,
+                        'user_id' => $comment->user_id,
                         'author' => $comment->user?->name ?? $comment->author_name,
                         'created_at' => $comment->created_at->format('Y-m-d H:i'),
                         'body' => $comment->body,
                         'attachments' => $comment->attachments->map(fn ($attachment) => [
+                            'id' => $attachment->id,
                             'name' => $attachment->original_name,
                             'size' => $attachment->size,
                             'url' => $attachment->url,

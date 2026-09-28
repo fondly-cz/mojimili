@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TodoCommentAttachment extends Model
 {
@@ -38,6 +39,25 @@ class TodoCommentAttachment extends Model
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
+        ]);
+    }
+
+    /**
+     * Stores raw file content (e.g. a base64 attachment sent through MCP) like an upload.
+     */
+    public static function storeContent(TodoComment $comment, string $name, string $content): self
+    {
+        $disk = Storage::disk(TodoComment::DISK);
+        $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        $path = TodoComment::directoryFor($comment->todo_id).'/'.Str::random(40).($extension !== '' ? '.'.$extension : '');
+
+        $disk->put($path, $content);
+
+        return $comment->attachments()->create([
+            'path' => $path,
+            'original_name' => $name,
+            'mime_type' => $disk->mimeType($path) ?: null,
+            'size' => strlen($content),
         ]);
     }
 
