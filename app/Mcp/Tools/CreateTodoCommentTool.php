@@ -18,7 +18,7 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('create-todo-comment')]
 #[Title('Přidat komentář k úkolu')]
-#[Description('Přidá komentář k úkolu (jako ve Freelu), volitelně s obrázky a dalšími přílohami v base64 (každá do 20 MB). Text může být HTML, Markdown i prostý text. Při přenosu z jiného systému lze uvést původní datum (created_at) a jméno autora bez účtu v CRM (author_name). ID úkolů zjistíš nástrojem get-project.')]
+#[Description('Přidá komentář k úkolu (jako ve Freelu), volitelně s obrázky a dalšími přílohami (každá do 20 MB) – přílohu předej jako url ke stažení nebo upload_id z create-upload-link, base64 jen v krajním případě. Text může být HTML, Markdown i prostý text. Při přenosu z jiného systému lze uvést původní datum (created_at) a jméno autora bez účtu v CRM (author_name). ID úkolů zjistíš nástrojem get-project.')]
 class CreateTodoCommentTool extends Tool
 {
     use DecodesCommentAttachments, InteractsWithCrmUser;
@@ -41,7 +41,7 @@ class CreateTodoCommentTool extends Tool
             'user_id.exists' => 'Uživatel s tímto ID v CRM neexistuje.',
         ]);
 
-        [$files, $error] = $this->decodeAttachments($validated['attachments'] ?? []);
+        [$files, $error] = $this->decodeAttachments($validated['attachments'] ?? [], $user);
 
         if ($error) {
             return Response::error($error);

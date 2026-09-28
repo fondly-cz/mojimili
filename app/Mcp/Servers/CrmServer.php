@@ -11,6 +11,7 @@ use App\Mcp\Tools\CreateTodoCommentTool;
 use App\Mcp\Tools\CreateTodolistFromCalculationTool;
 use App\Mcp\Tools\CreateTodolistTool;
 use App\Mcp\Tools\CreateTodoTool;
+use App\Mcp\Tools\CreateUploadLinkTool;
 use App\Mcp\Tools\CreateUserTool;
 use App\Mcp\Tools\CreateWorkReportTool;
 use App\Mcp\Tools\DeleteInvoiceTool;
@@ -73,7 +74,9 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
    Sazba nového výkazu: vlastní sazba výkazu, jinak sazba osoby v projektu (user_rates u update-project),
    jinak výchozí sazba projektu (hourly_rate u create-project/update-project).
 6. Komentáře k úkolu (jako ve Freelu) přidáš nástrojem create-todo-comment, i s obrázky a dalšími
-   přílohami v base64 (víc souborů k jednomu komentáři). Upravíš je update-todo-comment, smažeš
+   přílohami (víc souborů k jednomu komentáři). Přílohu předej jako url, kterou si server stáhne
+   (např. dočasný odkaz z Freela), nebo lokální soubor nahraj na odkaz z create-upload-link (curl -F)
+   a předej vrácené upload_id. Base64 použij jen tehdy, když nejde ani jedno. Upravíš je update-todo-comment, smažeš
    delete-todo-comment. Při přenosu z jiného systému zachovej původní datum (created_at); autora
    nejdřív najdi v list-users, případně ho založ nástrojem create-user, a uveď jeho user_id
    (jen jméno lze předat jako author_name). Komentáře úkolů vrací get-project. Popis úkolu může být HTML i Markdown.
@@ -117,6 +120,7 @@ class CrmServer extends Server
         CreateTodoCommentTool::class,
         UpdateTodoCommentTool::class,
         DeleteTodoCommentTool::class,
+        CreateUploadLinkTool::class,
         CreateWorkReportTool::class,
         UpdateWorkReportTool::class,
         DeleteWorkReportTool::class,
