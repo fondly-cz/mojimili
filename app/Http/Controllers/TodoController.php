@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Label;
 use App\Models\Todo;
+use App\Models\TodoAttachment;
+use App\Models\TodoComment;
 use App\Models\Todolist;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TodoController extends Controller
 {
@@ -55,6 +58,7 @@ class TodoController extends Controller
             'creator:id,name',
             'completer:id,name',
             'labels',
+            'attachments',
             'workReports.user:id,name',
             'workReports.invoice:id,number,url',
             'comments.user:id,name',
@@ -84,7 +88,16 @@ class TodoController extends Controller
             ...Todo::detailRules(),
             ...Todo::recurrenceRules(),
             ...self::labelRules(),
+            // Description files; sent together with the description from its editor.
+            'files' => 'sometimes|array|max:20',
+            'files.*' => 'file|max:'.TodoComment::MAX_FILE_KILOBYTES,
+            'remove_attachment_ids' => 'sometimes|array',
+            'remove_attachment_ids.*' => 'integer',
         ]);
+
+        $files = $request->file('files', []);
+        $removeIds = $validated['remove_attachment_ids'] ?? [];
+        unset($validated['files'], $validated['remove_attachment_ids']);
 
         if (array_key_exists('parent_id', $validated)) {
             $todo->moveUnder($validated['parent_id']);
@@ -97,13 +110,29 @@ class TodoController extends Controller
             $validated = [...$validated, ...Todo::completionAttributes($request->boolean('is_done'), $request->user()->id)];
         }
 
-        $todo->update(collect($validated)->except('label_ids')->all());
+        DB::transaction(function () use ($todo, $validated, $files, $removeIds) {
+            $todo->update(collect($validated)->except('label_ids')->all());
 
-        if (array_key_exists('label_ids', $validated)) {
-            $todo->labels()->sync($validated['label_ids'] ?? []);
-        }
+            if (array_key_exists('label_ids', $validated)) {
+                $todo->labels()->sync($validated['label_ids'] ?? []);
+            }
+
+            $todo->attachments()->whereIn('id', $removeIds)->get()->each->delete();
+
+            foreach ($files as $file) {
+                TodoAttachment::storeFor($todo, $file);
+            }
+        });
 
         return back()->with('success', 'Úkol byl upraven.');
+    }
+
+    /**
+     * Serves a description attachment from the private disk; images and PDFs open in the browser.
+     */
+    public function attachment(Request $request, TodoAttachment $attachment)
+    {
+        return $attachment->toResponse($request->boolean('download'));
     }
 
     public function destroy(Request $request, Todo $todo)

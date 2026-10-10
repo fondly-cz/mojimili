@@ -63,3 +63,7 @@ textarea:focus {
     --tw-ring-color: var(--color-brand-primary-from);
     border-color: var(--color-brand-primary-from);
 }
+/* Images inside rendered rich text open in the attachment gallery. */
+.rich-images img {
+    cursor: zoom-in;
+}

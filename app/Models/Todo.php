@@ -46,7 +46,7 @@ class Todo extends Model
             }
         });
 
-        // Thread rows cascade in the database; the attachment files have to go explicitly.
+        // Thread and attachment rows cascade in the database; the files (one directory per todo) have to go explicitly.
         static::deleted(function (Todo $todo) {
             TodoComment::purgeFilesFor([$todo->id]);
         });
@@ -321,5 +321,15 @@ class Todo extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(TodoComment::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    /**
+     * Files attached to the description.
+     *
+     * @return HasMany<TodoAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TodoAttachment::class)->orderBy('id');
     }
 }

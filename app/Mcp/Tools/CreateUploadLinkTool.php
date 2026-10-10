@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('create-upload-link')]
 #[Title('Odkaz pro nahrání souborů')]
-#[Description('Vrátí dočasný odkaz (platí 60 minut), na který nahraješ lokální soubory obyčejným multipart POSTem (curl -F). Odpověď obsahuje upload_id každého souboru – ten pak předej jako přílohu v create-todo-comment nebo update-todo-comment. Soubory tak nemusíš převádět do base64.')]
+#[Description('Vrátí dočasný odkaz (platí 60 minut), na který nahraješ lokální soubory obyčejným multipart POSTem (curl -F). Odpověď obsahuje upload_id každého souboru – ten pak předej jako přílohu (attachments) v create-todo-comment, update-todo-comment, create-todo nebo update-todo. Soubory tak nemusíš převádět do base64.')]
 class CreateUploadLinkTool extends Tool
 {
     use InteractsWithCrmUser;
@@ -33,7 +33,7 @@ class CreateUploadLinkTool extends Tool
             ."Jeden soubor:   curl -sS -F 'file=@/cesta/obrazek.png' '%s'\n"
             ."Více souborů:   curl -sS -F 'files[]=@a.png' -F 'files[]=@b.pdf' '%s'\n\n"
             .'Odpověď je JSON {"uploads": [{"upload_id", "name", "size"}]}. upload_id předej v attachments '
-            .'nástroje create-todo-comment. Nahrané soubory se po 24 hodinách mažou.',
+            .'nástroje create-todo-comment (příloha komentáře) nebo update-todo (příloha popisu úkolu). Nahrané soubory se po 24 hodinách mažou.',
             McpUpload::LINK_MINUTES,
             $url,
             $url,
