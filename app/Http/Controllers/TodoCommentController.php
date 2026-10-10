@@ -7,7 +7,6 @@ use App\Models\TodoComment;
 use App\Models\TodoCommentAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class TodoCommentController extends Controller
@@ -80,20 +79,9 @@ class TodoCommentController extends Controller
     /**
      * Serves an attachment from the private disk; images and PDFs open in the browser.
      */
-    public function attachment(TodoCommentAttachment $attachment)
+    public function attachment(Request $request, TodoCommentAttachment $attachment)
     {
-        $disk = Storage::disk(TodoComment::DISK);
-
-        abort_unless($disk->exists($attachment->path), 404);
-
-        $inline = $attachment->is_image || $attachment->mime_type === 'application/pdf';
-
-        return $disk->response($attachment->path, $attachment->original_name, [
-            'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
-            // Uploaded files must never run as HTML/JS in the app's origin.
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Security-Policy' => 'sandbox',
-        ], $inline ? 'inline' : 'attachment');
+        return $attachment->toResponse($request->boolean('download'));
     }
 
     /**

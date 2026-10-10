@@ -44,9 +44,16 @@
                     </div>
                 </div>
                 <!-- Sanitized on the server (RichText) before it is stored. -->
-                <div v-if="openId === document.id" class="toastui-editor-contents mt-3" v-html="document.content || '<p>Prázdný dokument.</p>'"></div>
+                <div
+                    v-if="openId === document.id"
+                    class="toastui-editor-contents rich-images mt-3"
+                    v-html="document.content || '<p>Prázdný dokument.</p>'"
+                    @click="onImageClick"
+                ></div>
             </li>
         </ul>
+
+        <AttachmentLightbox v-model="galleryIndex" :items="galleryItems" />
 
         <ConfirmModal
             :show="!!deleting"
@@ -59,11 +66,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import '@toast-ui/editor/dist/toastui-editor.css'
+import AttachmentLightbox from './AttachmentLightbox.vue'
 import ConfirmModal from './ConfirmModal.vue'
 import RichEditor from './RichEditor.vue'
+import { inlineImages, onInlineImageClick } from '../utils/files'
 
 const props = defineProps({
     projectId: Number,
@@ -72,6 +81,14 @@ const props = defineProps({
 
 const openId = ref(null)
 const toggle = (id) => { openId.value = openId.value === id ? null : id }
+
+// Images in the open document open in the gallery.
+const galleryItems = computed(() => inlineImages(props.documents.find(d => d.id === openId.value)?.content))
+const galleryIndex = ref(null)
+const onImageClick = onInlineImageClick((url) => {
+    const index = galleryItems.value.findIndex(item => item.url === url)
+    galleryIndex.value = index === -1 ? null : index
+})
 
 const editing = ref(false)
 const editedId = ref(null)

@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\TodoPriority;
 use App\Models\Label;
 use App\Models\Todo;
+use App\Models\TodoAttachment;
 use App\Models\Todolist;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -18,10 +19,10 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('create-todo')]
 #[Title('Přidat úkol')]
-#[Description('Přidá jeden úkol do existujícího seznamu úkolů, nebo jako podúkol pod existující úkol (stačí parent_id, seznam se převezme od rodiče). ID seznamů a úkolů zjistíš nástrojem get-project. Celý nový seznam i s úkoly založíš nástrojem create-todolist.')]
+#[Description('Přidá jeden úkol do existujícího seznamu úkolů, nebo jako podúkol pod existující úkol (stačí parent_id, seznam se převezme od rodiče). ID seznamů a úkolů zjistíš nástrojem get-project. K popisu lze přiložit obrázky a další soubory (attachments – url ke stažení nebo upload_id z create-upload-link). Celý nový seznam i s úkoly založíš nástrojem create-todolist.')]
 class CreateTodoTool extends Tool
 {
-    use InteractsWithCrmUser;
+    use DecodesCommentAttachments, InteractsWithCrmUser;
 
     public function handle(Request $request): Response
     {
@@ -40,6 +41,7 @@ class CreateTodoTool extends Tool
             ...Todo::detailRules(),
             'labels' => 'nullable|array|max:50',
             'labels.*' => 'string|max:100',
+            ...$this->attachmentRules(),
         ], [
             'todolist_id.required_without' => 'Uveď todolist_id seznamu, nebo parent_id úkolu, pod který se má podúkol přidat.',
             'todolist_id.exists' => 'Seznam úkolů s tímto ID neexistuje. ID zjistíš nástrojem get-project.',
@@ -56,9 +58,15 @@ class CreateTodoTool extends Tool
 
         $todolist = Todolist::with('project')->findOrFail($todolistId);
 
-        $todo = DB::transaction(function () use ($validated, $todolist, $parent, $user) {
+        [$files, $error] = $this->decodeAttachments($validated['attachments'] ?? [], $user);
+
+        if ($error) {
+            return Response::error($error);
+        }
+
+        $todo = DB::transaction(function () use ($validated, $todolist, $parent, $user, $files) {
             $todo = $todolist->todos()->create([
-                ...collect($validated)->except(['todolist_id', 'labels'])->all(),
+                ...collect($validated)->except(['todolist_id', 'labels', 'attachments'])->all(),
                 'parent_id' => $parent?->id,
                 'days' => $validated['days'] ?? 0,
                 'created_by_user_id' => $user->id,
@@ -69,15 +77,20 @@ class CreateTodoTool extends Tool
                 $todo->labels()->sync(Label::idsForNames($validated['labels']));
             }
 
+            foreach ($files as $file) {
+                TodoAttachment::storeContent($todo, $file['name'], $file['content'], $file['caption']);
+            }
+
             return $todo;
         });
 
         return Response::text(sprintf(
-            "Úkol \"%s\" byl přidán do seznamu \"%s\" (todo_id %d%s).\nDetail v CRM: %s",
+            "Úkol \"%s\" byl přidán do seznamu \"%s\" (todo_id %d%s%s).\nDetail v CRM: %s",
             $todo->name,
             $todolist->name,
             $todo->id,
             $parent ? sprintf(', podúkol úkolu "%s"', $parent->name) : '',
+            $files !== [] ? sprintf(', příloh: %d', count($files)) : '',
             route('todos.show', $todo),
         ));
     }
@@ -123,6 +136,8 @@ class CreateTodoTool extends Tool
             'labels' => $schema->array()
                 ->description('Názvy štítků; chybějící štítky se založí.')
                 ->items($schema->string()),
+
+            'attachments' => $this->attachmentsSchema($schema, 'popisu úkolu'),
         ];
     }
 }

@@ -64,6 +64,7 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     Route::get('todos/{todo}', [TodoController::class, 'show'])->name('todos.show');
     Route::patch('todos/{todo}', [TodoController::class, 'update'])->name('todos.update');
     Route::delete('todos/{todo}', [TodoController::class, 'destroy'])->name('todos.destroy');
+    Route::get('todo-attachments/{attachment}', [TodoController::class, 'attachment'])->name('todo-attachments.show');
 
     Route::post('todos/{todo}/work-reports', [WorkReportController::class, 'store'])->name('todos.work-reports.store');
     Route::patch('work-reports/{workReport}', [WorkReportController::class, 'update'])->name('work-reports.update');

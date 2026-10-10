@@ -6,8 +6,10 @@ use App\Enums\RecurrenceFrequency;
 use App\Enums\TodoPriority;
 use App\Models\Label;
 use App\Models\Todo;
+use App\Models\TodoAttachment;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Support\Facades\DB;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -17,10 +19,10 @@ use Laravel\Mcp\Server\Tool;
 
 #[Name('update-todo')]
 #[Title('Upravit úkol')]
-#[Description('Upraví jeden úkol – označí ho za hotový, přiřadí řešitele, nastaví termín, prioritu, odhad, štítky, změní název nebo nastaví opakování. Vyplň jen pole, která se mají změnit. ID úkolů zjistíš nástrojem get-project. Opakovaný úkol funguje jako ve Freelu: po dokončení se vytvoří jeho další výskyt s posunutým termínem, stejným řešitelem a otevřenými podúkoly.')]
+#[Description('Upraví jeden úkol – označí ho za hotový, přiřadí řešitele, nastaví termín, prioritu, odhad, štítky, změní název, nastaví opakování nebo přidá či odebere přílohy popisu (obrázky i jiné soubory přes url ke stažení nebo upload_id z create-upload-link). Vyplň jen pole, která se mají změnit. ID úkolů i příloh zjistíš nástrojem get-project. Opakovaný úkol funguje jako ve Freelu: po dokončení se vytvoří jeho další výskyt s posunutým termínem, stejným řešitelem a otevřenými podúkoly.')]
 class UpdateTodoTool extends Tool
 {
-    use InteractsWithCrmUser;
+    use DecodesCommentAttachments, InteractsWithCrmUser;
 
     public function handle(Request $request): Response
     {
@@ -41,6 +43,9 @@ class UpdateTodoTool extends Tool
             ...Todo::recurrenceRules(),
             'labels' => 'sometimes|nullable|array|max:50',
             'labels.*' => 'string|max:100',
+            'remove_attachment_ids' => 'nullable|array',
+            'remove_attachment_ids.*' => 'integer',
+            ...$this->attachmentRules(),
         ], [
             'id.exists' => 'Úkol s tímto ID neexistuje. ID úkolů zjistíš nástrojem get-project.',
             'assigned_user_id.exists' => 'Uživatel s tímto ID v CRM neexistuje.',
@@ -54,6 +59,15 @@ class UpdateTodoTool extends Tool
         }
 
         $changed = array_keys($validated);
+
+        [$files, $error] = $this->decodeAttachments($validated['attachments'] ?? [], $user);
+
+        if ($error) {
+            return Response::error($error);
+        }
+
+        $removeIds = $validated['remove_attachment_ids'] ?? [];
+        unset($validated['attachments'], $validated['remove_attachment_ids']);
 
         if (array_key_exists('parent_id', $validated)) {
             if ($error = $todo->parentError($validated['parent_id'])) {
@@ -69,11 +83,19 @@ class UpdateTodoTool extends Tool
             $validated = [...$validated, ...Todo::completionAttributes((bool) $validated['is_done'], $user->id)];
         }
 
-        $todo->update(collect($validated)->except('labels')->all());
+        DB::transaction(function () use ($todo, $validated, $removeIds, $files) {
+            $todo->update(collect($validated)->except('labels')->all());
 
-        if (array_key_exists('labels', $validated)) {
-            $todo->labels()->sync(Label::idsForNames($validated['labels'] ?? []));
-        }
+            if (array_key_exists('labels', $validated)) {
+                $todo->labels()->sync(Label::idsForNames($validated['labels'] ?? []));
+            }
+
+            $todo->attachments()->whereIn('id', $removeIds)->get()->each->delete();
+
+            foreach ($files as $file) {
+                TodoAttachment::storeContent($todo, $file['name'], $file['content'], $file['caption']);
+            }
+        });
         $todo->load('todolist.project');
 
         $next = $todo->is_done ? Todo::where('recurrence_previous_id', $todo->id)->first() : null;
@@ -134,6 +156,12 @@ class UpdateTodoTool extends Tool
             'labels' => $schema->array()
                 ->description('Názvy štítků úkolu – nahradí všechny dosavadní, chybějící štítky se založí. [] štítky odebere.')
                 ->items($schema->string()),
+
+            'attachments' => $this->attachmentsSchema($schema, 'popisu úkolu, které se k němu přidají'),
+
+            'remove_attachment_ids' => $schema->array()
+                ->description('ID příloh popisu, které se mají z úkolu odebrat (vrací je get-project).')
+                ->items($schema->integer()),
 
             'recurrence_frequency' => $schema->string()
                 ->enum(array_column(RecurrenceFrequency::cases(), 'value'))

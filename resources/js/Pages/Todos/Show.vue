@@ -66,32 +66,52 @@
                             @click="startDescription"
                             class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-brand-primary-from transition-colors"
                         >
-                            {{ todo.description ? 'Upravit' : '+ Přidat popis' }}
+                            {{ todo.description || attachments.length ? 'Upravit' : '+ Přidat popis' }}
                         </button>
                     </div>
 
                     <template v-if="editingDescription">
-                        <RichEditor v-model="description" height="320px" placeholder="Popis úkolu..." />
-                        <div class="mt-4 flex items-center gap-3">
+                        <RichEditor v-model="descriptionForm.description" height="320px" placeholder="Popis úkolu..." />
+                        <ul v-if="attachments.length" class="mt-3 flex flex-wrap gap-2">
+                            <li
+                                v-for="attachment in attachments"
+                                :key="attachment.id"
+                                class="flex items-center gap-2 px-2.5 py-1 rounded-lg border text-[10px] font-bold"
+                                :class="descriptionForm.remove_attachment_ids.includes(attachment.id) ? 'border-red-100 bg-red-50 text-red-400 line-through' : 'border-gray-100 bg-gray-50 text-gray-500'"
+                            >
+                                {{ attachment.original_name }}
+                                <button type="button" @click="toggleRemoval(attachment.id)" class="text-[9px] font-black uppercase tracking-widest hover:text-red-500">
+                                    {{ descriptionForm.remove_attachment_ids.includes(attachment.id) ? 'Vrátit' : 'Odebrat' }}
+                                </button>
+                            </li>
+                        </ul>
+                        <FilePicker v-model="descriptionForm.files" class="mt-3" />
+                        <div class="mt-4 flex flex-wrap items-center gap-3">
                             <button
                                 type="button"
                                 @click="saveDescription"
-                                class="brand-gradient px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white"
+                                :disabled="descriptionForm.processing"
+                                class="brand-gradient px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
                             >
                                 Uložit popis
                             </button>
                             <button type="button" @click="editingDescription = false" class="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600">Zrušit</button>
+                            <span v-if="descriptionForm.progress" class="text-[10px] font-bold text-gray-400">{{ descriptionForm.progress.percentage }} %</span>
                         </div>
+                        <p v-if="firstError(descriptionForm)" class="mt-2 text-xs text-red-500 font-bold">{{ firstError(descriptionForm) }}</p>
                     </template>
-                    <!-- Sanitized on the server (RichText) before it is stored. -->
-                    <div v-else-if="todo.description" class="toastui-editor-contents" v-html="todo.description"></div>
-                    <p v-else class="text-sm font-bold text-gray-300">Úkol zatím nemá popis.</p>
+                    <template v-else>
+                        <!-- Sanitized on the server (RichText) before it is stored. -->
+                        <div v-if="todo.description" class="toastui-editor-contents rich-images" v-html="todo.description" @click="onImageClick"></div>
+                        <p v-else-if="!attachments.length" class="text-sm font-bold text-gray-300">Úkol zatím nemá popis.</p>
+                        <AttachmentThumbs :attachments="attachments" :class="{ 'mt-4': todo.description }" @open="openAttachment" />
+                    </template>
                 </section>
 
                 <!-- Comments -->
                 <section :class="cardClass">
                     <h2 :class="headingClass" class="mb-4">Komentáře ({{ (todo.comments || []).length }})</h2>
-                    <TodoComments :todo="todo" />
+                    <TodoComments :todo="todo" @open-attachment="openAttachment" />
                 </section>
             </div>
 
@@ -202,6 +222,8 @@
             />
         </section>
 
+        <AttachmentLightbox v-model="galleryIndex" :items="galleryItems" />
+
         <ConfirmModal
             :show="confirmDelete"
             title="Smazat úkol"
@@ -214,17 +236,21 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import '@toast-ui/editor/dist/toastui-editor.css'
+import AttachmentLightbox from '../../Components/AttachmentLightbox.vue'
+import AttachmentThumbs from '../../Components/AttachmentThumbs.vue'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
+import FilePicker from '../../Components/FilePicker.vue'
 import RichEditor from '../../Components/RichEditor.vue'
 import TodoComments from '../../Components/TodoComments.vue'
 import TodoLabels from '../../Components/TodoLabels.vue'
 import TodoRecurrence from '../../Components/TodoRecurrence.vue'
 import TodoSubtasks from '../../Components/TodoSubtasks.vue'
 import TodoWorkReports from '../../Components/TodoWorkReports.vue'
+import { inlineImages, onInlineImageClick } from '../../utils/files'
 
 const props = defineProps({
     todo: Object,
@@ -274,20 +300,52 @@ const saveName = () => {
     if (trimmed !== props.todo.name) update({ name: trimmed })
 }
 
+const attachments = computed(() => props.todo.attachments || [])
+
 const editingDescription = ref(false)
-const description = ref('')
+const descriptionForm = useForm({ description: '', files: [], remove_attachment_ids: [] })
+
+// Laravel reports array uploads as "files.0" etc.; show whichever error comes first.
+const firstError = (f) => Object.values(f.errors)[0]
 
 const startDescription = () => {
-    description.value = props.todo.description || ''
+    descriptionForm.description = props.todo.description || ''
+    descriptionForm.files = []
+    descriptionForm.remove_attachment_ids = []
+    descriptionForm.clearErrors()
     editingDescription.value = true
 }
 
-const saveDescription = () => {
-    router.patch(`/todos/${props.todo.id}`, { description: description.value || null }, {
-        preserveScroll: true,
-        onSuccess: () => { editingDescription.value = false },
-    })
+const toggleRemoval = (id) => {
+    const ids = descriptionForm.remove_attachment_ids
+    descriptionForm.remove_attachment_ids = ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]
 }
+
+const saveDescription = () => {
+    // Files can't travel in a real PATCH request, so it is spoofed over POST.
+    descriptionForm
+        .transform(data => ({ ...data, description: data.description || null, _method: 'patch' }))
+        .post(`/todos/${props.todo.id}`, {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => { editingDescription.value = false },
+        })
+}
+
+// One gallery in page order: the description (images in its text, then its files), then every comment the same way.
+const galleryItems = computed(() => [
+    ...inlineImages(props.todo.description),
+    ...attachments.value,
+    ...(props.todo.comments || []).flatMap(comment => [...inlineImages(comment.body), ...comment.attachments]),
+])
+const galleryIndex = ref(null)
+
+const openAttachment = (attachment) => {
+    const index = galleryItems.value.findIndex(item => item.url === attachment.url)
+    galleryIndex.value = index === -1 ? null : index
+}
+
+const onImageClick = onInlineImageClick(url => openAttachment({ url }))
 
 const confirmDelete = ref(false)
 

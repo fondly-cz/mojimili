@@ -11,7 +11,7 @@ use Illuminate\JsonSchema\Types\Type;
 use RuntimeException;
 
 /**
- * Comment attachments sent through MCP, shared by the create and update tools. A client
+ * Attachments of comments and todo descriptions sent through MCP, shared by the create and update tools. A client
  * passes a URL the server downloads itself, the upload_id of a file sent to a link from
  * create-upload-link, or, as a last resort, the file content in base64.
  */
@@ -32,10 +32,10 @@ trait DecodesCommentAttachments
         ];
     }
 
-    protected function attachmentsSchema(JsonSchema $schema): Type
+    protected function attachmentsSchema(JsonSchema $schema, string $owner = 'komentáře'): Type
     {
         return $schema->array()
-            ->description('Přílohy komentáře – obrázky i jiné soubory, nejvýš 20 najednou a každá do 20 MB. Obrázky se v CRM zobrazí jako náhledy. U každé přílohy uveď url, upload_id, nebo (jen v krajním případě) content_base64.')
+            ->description('Přílohy '.$owner.' – obrázky i jiné soubory, nejvýš 20 najednou a každá do 20 MB. Obrázky se v CRM zobrazí jako náhledy. U každé přílohy uveď url, upload_id, nebo (jen v krajním případě) content_base64.')
             ->items($schema->object([
                 'url' => $schema->string()->description('Veřejná https adresa souboru, který si server sám stáhne (např. dočasný odkaz z Freela). Přednostně používej tohle místo base64.'),
                 'upload_id' => $schema->string()->description('ID souboru nahraného na odkaz z create-upload-link – pro lokální soubory.'),
