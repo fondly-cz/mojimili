@@ -57,6 +57,27 @@ class TodoCommentTest extends TestCase
         }
     }
 
+    public function test_an_attachment_up_to_the_size_limit_is_accepted_and_a_bigger_one_rejected(): void
+    {
+        $user = $this->manager();
+        $todo = Todo::factory()->create();
+
+        $this->actingAs($user)
+            ->post("/todos/{$todo->id}/comments", [
+                'files' => [UploadedFile::fake()->create('katalog.pdf', TodoComment::MAX_FILE_KILOBYTES, 'application/pdf')],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($user)
+            ->post("/todos/{$todo->id}/comments", [
+                'files' => [UploadedFile::fake()->create('velky.pdf', TodoComment::MAX_FILE_KILOBYTES + 1, 'application/pdf')],
+            ])
+            ->assertSessionHasErrors('files.0');
+
+        $this->assertSame(100 * 1024, TodoComment::MAX_FILE_KILOBYTES);
+        $this->assertSame(['katalog.pdf'], $todo->comments()->with('attachments')->get()->flatMap->attachments->pluck('original_name')->all());
+    }
+
     public function test_an_empty_post_is_rejected(): void
     {
         $todo = Todo::factory()->create();

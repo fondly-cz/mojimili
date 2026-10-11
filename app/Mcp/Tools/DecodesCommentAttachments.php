@@ -35,7 +35,7 @@ trait DecodesCommentAttachments
     protected function attachmentsSchema(JsonSchema $schema, string $owner = 'komentáře'): Type
     {
         return $schema->array()
-            ->description('Přílohy '.$owner.' – obrázky i jiné soubory, nejvýš 20 najednou a každá do 20 MB. Obrázky se v CRM zobrazí jako náhledy. U každé přílohy uveď url, upload_id, nebo (jen v krajním případě) content_base64.')
+            ->description('Přílohy '.$owner.' – obrázky i jiné soubory, nejvýš 20 najednou a každá do 100 MB. Obrázky se v CRM zobrazí jako náhledy. U každé přílohy uveď url, upload_id, nebo (jen v krajním případě) content_base64.')
             ->items($schema->object([
                 'url' => $schema->string()->description('Veřejná https adresa souboru, který si server sám stáhne (např. dočasný odkaz z Freela). Přednostně používej tohle místo base64.'),
                 'upload_id' => $schema->string()->description('ID souboru nahraného na odkaz z create-upload-link – pro lokální soubory.'),
