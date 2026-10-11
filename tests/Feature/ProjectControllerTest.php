@@ -112,6 +112,20 @@ class ProjectControllerTest extends TestCase
             );
     }
 
+    public function test_it_sends_avatars_of_assignable_users(): void
+    {
+        $project = Project::factory()->create();
+        $manager = $this->manager();
+        $manager->update(['avatar' => 'https://example.com/avatar.png']);
+
+        $this->actingAs($manager)
+            ->get("/projects/{$project->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('users', fn ($users) => collect($users)->firstWhere('id', $manager->id)['avatar'] === 'https://example.com/avatar.png')
+            );
+    }
+
     public function test_it_updates_a_project(): void
     {
         $project = Project::factory()->create(['name' => 'Puvodni']);

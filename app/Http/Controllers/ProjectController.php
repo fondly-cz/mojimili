@@ -77,7 +77,7 @@ class ProjectController extends Controller
 
         return inertia('Projects/Show', [
             'project' => $project,
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'users' => User::orderBy('name')->get(['id', 'name', 'avatar']),
             // Calculations that can still be turned into a todolist for this project.
             'calculations' => Calculation::query()
                 ->when($project->company_id, fn ($q) => $q->where('company_id', $project->company_id))

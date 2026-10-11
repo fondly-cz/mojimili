@@ -107,7 +107,7 @@
                                         {{ project.name.charAt(0) }}
                                     </div>
                                     <div>
-                                        <div class="text-base font-bold text-gray-900 font-heading leading-tight">{{ project.name }}</div>
+                                        <Link :href="`/projects/${project.id}`" class="block text-base font-bold text-gray-900 font-heading leading-tight hover:text-brand-primary-from transition-colors">{{ project.name }}</Link>
                                         <div v-if="project.description" class="text-xs font-semibold text-gray-400 mt-1 line-clamp-1 max-w-md">
                                             {{ project.description }}
                                         </div>

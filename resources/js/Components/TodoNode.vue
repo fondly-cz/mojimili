@@ -4,6 +4,21 @@
             class="group flex items-start gap-4 rounded-2xl border-2 border-gray-50 bg-white p-4 transition-all hover:border-brand-primary-from/30"
             :class="{ 'opacity-60': todo.is_done }"
         >
+            <button
+                v-if="children.length > 0"
+                type="button"
+                @click="open = !open"
+                class="mt-1 h-5 w-5 shrink-0 rounded-lg text-gray-500 hover:text-brand-primary-from hover:bg-gray-50 transition-colors"
+                :title="open ? 'Skrýt podúkoly' : 'Zobrazit podúkoly'"
+                :aria-label="open ? 'Skrýt podúkoly' : 'Zobrazit podúkoly'"
+                :aria-expanded="open"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform" :class="{ '-rotate-90': !open }" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M3.5 6h13L10 15z" />
+                </svg>
+            </button>
+            <span v-else class="h-5 w-5 shrink-0"></span>
+
             <input
                 type="checkbox"
                 :checked="todo.is_done"
@@ -58,25 +73,51 @@
                 </div>
 
                 <div class="mt-3 flex flex-wrap items-center gap-3">
-                    <select
-                        :value="todo.assigned_user_id || ''"
-                        @change="e => $emit('assign', { todo, userId: e.target.value || null })"
-                        class="px-2.5 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 border-none rounded-lg focus:ring-1 focus:ring-brand-primary-from transition-all cursor-pointer"
+                    <!-- The avatar is the face of an invisible select laid over it. -->
+                    <div
+                        class="relative h-7 w-7 shrink-0 rounded-full focus-within:ring-2 focus-within:ring-brand-primary-from focus-within:ring-offset-1"
+                        :title="assignee ? assignee.name : 'Nepřiřazeno'"
                     >
-                        <option value="">Nepřiřazeno</option>
-                        <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
-                    </select>
+                        <UserAvatar v-if="assignee" :user="assignee" class="h-full w-full text-[9px]" />
+                        <span v-else class="flex h-full w-full items-center justify-center rounded-full border-2 border-dashed border-gray-200 text-gray-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
+                            </svg>
+                        </span>
+                        <select
+                            :value="todo.assigned_user_id || ''"
+                            @change="e => $emit('assign', { todo, userId: e.target.value || null })"
+                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            aria-label="Řešitel"
+                        >
+                            <option value="">Nepřiřazeno</option>
+                            <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+                        </select>
+                    </div>
 
-                    <input
-                        type="date"
-                        :value="todo.due_date ? todo.due_date.substring(0, 10) : ''"
-                        @change="e => $emit('due-date', { todo, dueDate: e.target.value || null })"
-                        class="px-2.5 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 border-none rounded-lg focus:ring-1 focus:ring-brand-primary-from transition-all"
+                    <!-- Only a set deadline shows; the hidden input lends its calendar. -->
+                    <button
+                        v-if="todo.due_date"
+                        type="button"
+                        @click="dueInput.showPicker()"
+                        class="relative px-2.5 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 rounded-lg hover:text-brand-primary-from transition-colors"
+                        title="Termín"
                     >
+                        {{ dueLabel }}
+                        <input
+                            ref="dueInput"
+                            type="date"
+                            tabindex="-1"
+                            aria-label="Termín"
+                            :value="todo.due_date.substring(0, 10)"
+                            @change="e => $emit('due-date', { todo, dueDate: e.target.value || null })"
+                            class="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+                        >
+                    </button>
 
                     <button
                         type="button"
-                        @click="$emit('add-child', todo)"
+                        @click="open = true; $emit('add-child', todo)"
                         class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-brand-primary-from transition-colors"
                     >
                         + Podúkol
@@ -111,7 +152,7 @@
         </div>
 
         <!-- Children -> recursive mapping -->
-        <div v-if="children.length > 0" class="mt-3 ml-6 space-y-3 border-l-2 border-dashed border-gray-100 pl-4">
+        <div v-if="open && children.length > 0" class="mt-3 ml-6 space-y-3 border-l-2 border-dashed border-gray-100 pl-4">
             <TodoNode
                 v-for="child in children"
                 :key="child.id"
@@ -129,8 +170,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import UserAvatar from './UserAvatar.vue'
 import { formatMinutes } from '../utils/billing'
 
 const props = defineProps({
@@ -149,6 +191,21 @@ const priorityStyles = {
 }
 
 const children = computed(() => props.allTodos.filter(t => t.parent_id === props.todo.id))
+
+// Subtasks stay folded until asked for.
+const open = ref(false)
+
+const dueInput = ref(null)
+
+// E.g. "út 24.9."; built from the date part alone so the time zone can't shift the day.
+const dueLabel = computed(() => {
+    const [year, month, day] = props.todo.due_date.substring(0, 10).split('-').map(Number)
+    const weekday = new Date(year, month - 1, day).toLocaleDateString('cs-CZ', { weekday: 'short' })
+
+    return `${weekday} ${day}.${month}.`
+})
+
+const assignee = computed(() => props.users.find(u => u.id === props.todo.assigned_user_id) || null)
 
 const doneChildren = computed(() => children.value.filter(t => t.is_done).length)
 
