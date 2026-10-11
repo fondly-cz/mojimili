@@ -55,13 +55,13 @@ class TodoController extends Controller
             'children.assignee:id,name',
             'children.labels',
             'assignee:id,name',
-            'creator:id,name',
+            'creator:id,name,avatar',
             'completer:id,name',
             'labels',
             'attachments',
             'workReports.user:id,name',
             'workReports.invoice:id,number,url',
-            'comments.user:id,name',
+            'comments.user:id,name,avatar',
             'comments.attachments',
         ]);
 
