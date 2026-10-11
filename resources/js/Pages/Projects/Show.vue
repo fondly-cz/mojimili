@@ -150,12 +150,22 @@
                 </div>
 
                 <div class="p-10">
+                    <button
+                        @click="openNewTodo(list)"
+                        class="mb-4 inline-flex items-center gap-2 rounded-full border-2 border-gray-100 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-brand-primary-from hover:text-brand-primary-from transition-all font-heading"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Přidat úkol
+                    </button>
+
                     <p v-if="list.todos.length === 0" class="text-sm font-bold text-gray-300 text-center py-6">
                         Zatím žádné úkoly.
                     </p>
                     <div v-else class="space-y-3">
                         <TodoNode
-                            v-for="todo in rootTodos(list)"
+                            v-for="todo in visibleTodos(list)"
                             :key="todo.id"
                             :todo="todo"
                             :all-todos="list.todos"
@@ -166,6 +176,15 @@
                             @add-child="openNewTodo(list, $event)"
                             @remove="deleteTodo"
                         />
+                        <button
+                            v-if="doneTodos(list).length > DONE_PREVIEW"
+                            @click="toggleDone(list)"
+                            class="pt-2 text-xs font-bold text-gray-400 hover:text-brand-primary-from transition-colors"
+                        >
+                            {{ expandedDone.has(list.id)
+                                ? 'Skrýt dokončené úkoly'
+                                : `+${doneTodos(list).length - DONE_PREVIEW} ${doneLabel(doneTodos(list).length - DONE_PREVIEW)}` }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -325,6 +344,33 @@ const overBudget = computed(() =>
 )
 
 const rootTodos = (list) => list.todos.filter(t => t.parent_id === null)
+
+// Done todos sink to the bottom, newest first, and only the first few show until expanded.
+const DONE_PREVIEW = 2
+const expandedDone = reactive(new Set())
+
+const doneTodos = (list) => rootTodos(list)
+    .filter(t => t.is_done)
+    .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
+
+const visibleTodos = (list) => {
+    const done = doneTodos(list)
+
+    return [
+        ...rootTodos(list).filter(t => !t.is_done),
+        ...(expandedDone.has(list.id) ? done : done.slice(0, DONE_PREVIEW)),
+    ]
+}
+
+const toggleDone = (list) => {
+    expandedDone.has(list.id) ? expandedDone.delete(list.id) : expandedDone.add(list.id)
+}
+
+const doneLabel = (count) => {
+    if (count === 1) return 'dokončený úkol'
+    if (count >= 2 && count <= 4) return 'dokončené úkoly'
+    return 'dokončených úkolů'
+}
 
 // --- Todolist creation ---
 const newList = reactive({ show: false })
