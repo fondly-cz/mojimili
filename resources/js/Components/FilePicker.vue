@@ -10,7 +10,7 @@
             <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">
                 📎 Přetáhněte soubory sem nebo klikněte
             </span>
-            <span class="text-[10px] font-semibold text-gray-300">Víc souborů najednou, každý do 20 MB</span>
+            <span class="text-[10px] font-semibold text-gray-300">Víc souborů najednou, každý do 100 MB</span>
             <input type="file" multiple class="hidden" @change="onSelect">
         </label>
 

@@ -23,7 +23,7 @@ class TodoComment extends Model
     /** Private disk the attachments live on; they are served only through the app. */
     public const DISK = 'local';
 
-    public const MAX_FILE_KILOBYTES = 20 * 1024;
+    public const MAX_FILE_KILOBYTES = 100 * 1024;
 
     protected static function booted(): void
     {
