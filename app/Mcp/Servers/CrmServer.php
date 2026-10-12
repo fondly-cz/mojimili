@@ -82,6 +82,8 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
    (jen jméno lze předat jako author_name). Komentáře úkolů vrací get-project. Popis úkolu může být HTML i Markdown.
    Obrázky a soubory patřící přímo k popisu úkolu přilož stejným způsobem přes attachments nástroje
    create-todo nebo update-todo (odebereš je přes remove_attachment_ids); vrací je get-project u úkolu.
+   Osobu zmíníš v komentáři nebo popisu úkolu textem @Jméno Příjmení; zmínka se vytvoří jen pro osobu
+   přiřazenou k projektu (members u get-project, nastavíš je přes member_ids u update-project).
 7. Nové uživatele (kolegy, externisty) zakládá create-user. Bez role jsou jen osobami pro úkoly, výkazy
    a komentáře; roli s přístupem do CRM smí přidělit pouze administrátor.
 

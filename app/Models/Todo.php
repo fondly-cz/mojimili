@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Actions\SpawnNextRecurringTodo;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\TodoPriority;
+use App\Support\Mentions;
 use App\Support\RichText;
 use Database\Factories\TodoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -40,6 +41,12 @@ class Todo extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (Todo $todo) {
+            if ($todo->isDirty('description')) {
+                $todo->attributes['description'] = Mentions::link($todo->description, $todo->todolist?->project);
+            }
+        });
+
         static::updated(function (Todo $todo) {
             if ($todo->wasChanged('is_done') && $todo->is_done) {
                 app(SpawnNextRecurringTodo::class)->handle($todo);

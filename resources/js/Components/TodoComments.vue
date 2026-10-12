@@ -31,7 +31,7 @@
 
                 <template v-if="editingKey === post.key">
                     <div class="mt-3">
-                        <RichEditor v-model="editForm.body" height="200px" placeholder="Text příspěvku..." />
+                        <RichEditor v-model="editForm.body" :mention-users="mentionUsers" height="200px" placeholder="Text příspěvku..." />
                     </div>
                     <ul v-if="post.attachments.length" class="mt-3 flex flex-wrap gap-2">
                         <li
@@ -64,7 +64,7 @@
         </div>
 
         <form @submit.prevent="submit" class="space-y-3">
-            <RichEditor :key="editorKey" v-model="form.body" height="200px" placeholder="Napište příspěvek..." />
+            <RichEditor :key="editorKey" v-model="form.body" :mention-users="mentionUsers" height="200px" placeholder="Napište příspěvek... (@ zmíní člověka z projektu)" />
             <FilePicker v-model="form.files" />
             <div class="flex flex-wrap items-center gap-3">
                 <button
@@ -101,6 +101,8 @@ import { onInlineImageClick } from '../utils/files'
 
 const props = defineProps({
     todo: Object,
+    // People assigned to the project; only they can be mentioned.
+    mentionUsers: Array,
 })
 
 // The todo page owns one gallery for the description and all comments.

@@ -55,6 +55,8 @@
             {{ project.description }}
         </p>
 
+        <ProjectMembers :project-id="project.id" :members="project.members" :users="users" />
+
         <ProjectDocuments :project-id="project.id" :documents="project.documents" />
 
         <!-- Progress summary -->
@@ -298,6 +300,7 @@ import Modal from '../../Components/Modal.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 import TodoNode from '../../Components/TodoNode.vue'
 import ProjectDocuments from '../../Components/ProjectDocuments.vue'
+import ProjectMembers from '../../Components/ProjectMembers.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
 import { formatCurrency, formatMinutes, reportAmount } from '../../utils/billing'
 

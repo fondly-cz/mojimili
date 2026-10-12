@@ -107,6 +107,18 @@ class Project extends Model
     }
 
     /**
+     * People assigned to the project; only they can be mentioned in its todos.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'project_members')
+            ->withTimestamps()
+            ->orderBy('users.name');
+    }
+
+    /**
      * Rate for a new work report: the person's rate in this project,
      * then the project's default, then zero.
      */

@@ -54,6 +54,8 @@ class ProjectController extends Controller
             'status' => $validated['status'] ?? 'active',
         ]);
 
+        $project->members()->attach(auth()->id());
+
         return redirect()->route('projects.show', $project)
             ->with('success', 'Projekt byl vytvořen.');
     }
@@ -72,6 +74,7 @@ class ProjectController extends Controller
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number,url',
             'userRates:id,name',
+            'members:id,name,avatar',
             'documents.user:id,name',
         ]);
 

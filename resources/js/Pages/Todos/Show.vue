@@ -65,7 +65,7 @@
                 <!-- Discussion; the description is its first post. -->
                 <section :class="cardClass">
                     <h2 :class="headingClass" class="mb-4">Diskuse ({{ postCount }})</h2>
-                    <TodoComments :todo="todo" @open-attachment="openAttachment" />
+                    <TodoComments :todo="todo" :mention-users="project.members" @open-attachment="openAttachment" />
                 </section>
             </div>
 

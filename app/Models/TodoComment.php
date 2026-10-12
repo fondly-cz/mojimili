@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Mentions;
 use App\Support\RichText;
 use Database\Factories\TodoCommentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +28,12 @@ class TodoComment extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (TodoComment $comment) {
+            if ($comment->isDirty('body')) {
+                $comment->attributes['body'] = Mentions::link($comment->body, $comment->todo?->todolist?->project);
+            }
+        });
+
         // Row deletes cascade in the database, the files have to go explicitly.
         static::deleting(function (TodoComment $comment) {
             $comment->attachments->each->delete();
