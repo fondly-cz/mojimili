@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Actions\InvoiceWorkReports;
 use App\Models\Invoice;
+use App\Models\WorkReport;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class UpdateInvoiceTool extends Tool
 
     public function handle(Request $request, InvoiceWorkReports $invoiceWorkReports): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -44,9 +45,17 @@ class UpdateInvoiceTool extends Tool
         ]);
 
         $invoice = Invoice::findOrFail($validated['id']);
+
+        if (! $this->canSee($user, $invoice)) {
+            return $this->projectHidden();
+        }
         $fields = collect($validated)->only(['number', 'url', 'issued_at', 'note'])->all();
         $add = $validated['add_work_report_ids'] ?? [];
         $remove = $validated['remove_work_report_ids'] ?? [];
+
+        if (WorkReport::idsHiddenFrom($user, $add) !== []) {
+            return $this->projectHidden();
+        }
 
         if ($fields === [] && $add === [] && $remove === []) {
             return Response::error('Neuvedl jsi žádnou změnu. Vyplň alespoň jedno pole, které se má upravit.');

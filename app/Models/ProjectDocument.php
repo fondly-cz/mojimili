@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Contracts\ProjectRestricted;
 use App\Support\RichText;
 use Database\Factories\ProjectDocumentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * A rich-text document attached to a project (documents in Freelo).
  */
-class ProjectDocument extends Model
+class ProjectDocument extends Model implements ProjectRestricted
 {
     /** @use HasFactory<ProjectDocumentFactory> */
     use HasFactory;
@@ -56,5 +57,10 @@ class ProjectDocument extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->project?->isVisibleTo($user);
     }
 }

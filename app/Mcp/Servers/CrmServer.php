@@ -30,6 +30,7 @@ use App\Mcp\Tools\ListUsersTool;
 use App\Mcp\Tools\UpdateCalculationTool;
 use App\Mcp\Tools\UpdateCompanyTool;
 use App\Mcp\Tools\UpdateInvoiceTool;
+use App\Mcp\Tools\UpdateProjectMembersTool;
 use App\Mcp\Tools\UpdateProjectTool;
 use App\Mcp\Tools\UpdateServiceTool;
 use App\Mcp\Tools\UpdateTodoCommentTool;
@@ -85,7 +86,12 @@ Projekty a úkoly (odsouhlasená kalkulace = zadání práce):
    Obrázky a soubory patřící přímo k popisu úkolu přilož stejným způsobem přes attachments nástroje
    create-todo nebo update-todo (odebereš je přes remove_attachment_ids); vrací je get-project u úkolu.
    Osobu zmíníš v komentáři nebo popisu úkolu textem @Jméno Příjmení; zmínka se vytvoří jen pro osobu
-   přiřazenou k projektu (members u get-project, nastavíš je přes member_ids u update-project).
+   přiřazenou k projektu.
+8. Projekt a vše v něm (seznamy, úkoly, komentáře, výkazy) vidí jen osoby k němu přiřazené a administrátoři;
+   pro ostatní jako by neexistoval. Kdo projekt založí, je k němu přiřazen automaticky. Další osoby přiřadíš
+   nebo odebereš nástrojem update-project-members (add_user_ids, remove_user_ids; ID zjistíš v list-users),
+   aktuální členy vrací get-project v poli members. Řešitelem úkolu (assigned_user_id) může být jen osoba
+   přiřazená k projektu – nejdřív ji tedy přiřaď.
 7. Nové uživatele (kolegy, externisty) zakládá create-user. Bez role jsou jen osobami pro úkoly, výkazy
    a komentáře; roli s přístupem do CRM smí přidělit pouze administrátor.
 
@@ -120,6 +126,7 @@ class CrmServer extends Server
         GetProjectTool::class,
         CreateProjectTool::class,
         UpdateProjectTool::class,
+        UpdateProjectMembersTool::class,
         CreateTodolistTool::class,
         CreateTodolistFromCalculationTool::class,
         CreateTodoTool::class,

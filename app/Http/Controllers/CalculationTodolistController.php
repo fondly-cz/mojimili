@@ -46,7 +46,7 @@ class CalculationTodolistController extends Controller
         }
 
         $project = ! empty($validated['project_id'])
-            ? Project::findOrFail($validated['project_id'])
+            ? Project::visibleTo($request->user())->findOrFail($validated['project_id'])
             : Project::create([
                 'name' => $validated['project_name'],
                 'company_id' => $calculation->company_id,
@@ -54,6 +54,10 @@ class CalculationTodolistController extends Controller
                 'user_id' => auth()->id(),
                 'status' => 'active',
             ]);
+
+        if ($project->wasRecentlyCreated) {
+            $project->members()->syncWithoutDetaching([$request->user()->id]);
+        }
 
         $createTodolist->handle($calculation, $project, $itemIds, $validated['name'] ?? null);
 

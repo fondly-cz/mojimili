@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Actions\SpawnNextRecurringTodo;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\TodoPriority;
+use App\Models\Contracts\ProjectRestricted;
 use App\Support\Mentions;
 use App\Support\RichText;
 use Database\Factories\TodoFactory;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-class Todo extends Model
+class Todo extends Model implements ProjectRestricted
 {
     /** @use HasFactory<TodoFactory> */
     use HasFactory;
@@ -338,5 +339,10 @@ class Todo extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(TodoAttachment::class)->orderBy('id');
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->todolist?->isVisibleTo($user);
     }
 }

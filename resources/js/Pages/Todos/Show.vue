@@ -77,8 +77,9 @@
                         <label :class="labelClass">Řešitel</label>
                         <select :value="todo.assigned_user_id || ''" @change="e => update({ assigned_user_id: e.target.value || null })" :class="inputClass">
                             <option value="">Nepřiřazeno</option>
-                            <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+                            <option v-for="user in assignableUsers" :key="user.id" :value="user.id">{{ user.name }}</option>
                         </select>
+                        <p v-if="$page.props.errors.assigned_user_id" class="mt-1 text-xs text-red-500 font-bold">{{ $page.props.errors.assigned_user_id }}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -225,6 +226,14 @@ const labelClass = 'block text-[9px] font-black text-gray-400 uppercase tracking
 const inputClass = 'block w-full px-3 py-2 bg-gray-50 border-gray-100 rounded-xl text-xs font-semibold text-gray-700 focus:ring-brand-primary-from focus:border-brand-primary-from'
 
 const project = computed(() => props.todo.todolist.project)
+
+// A todo can be handed only to a person from the project; someone removed since stays selected.
+const assignableUsers = computed(() => {
+    const { assignee } = props.todo
+    const members = project.value.members
+
+    return assignee && !members.some(member => member.id === assignee.id) ? [...members, assignee] : members
+})
 
 // Mirrors Project::rateFor(): the person's rate in the project, then the project default.
 const userRates = computed(() => Object.fromEntries(

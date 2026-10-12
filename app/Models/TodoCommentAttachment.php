@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use App\Models\Concerns\StoredAttachment;
+use App\Models\Contracts\ProjectRestricted;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
 
-class TodoCommentAttachment extends Model
+class TodoCommentAttachment extends Model implements ProjectRestricted
 {
     use StoredAttachment;
 
@@ -48,5 +49,10 @@ class TodoCommentAttachment extends Model
     protected function routeName(): string
     {
         return 'todo-comment-attachments.show';
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->comment?->isVisibleTo($user);
     }
 }

@@ -16,6 +16,7 @@ class ProjectController extends Controller
         $perPage = $request->input('per_page', 20);
 
         $projects = Project::with('company')
+            ->visibleTo($request->user())
             ->withCount('todolists')
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -54,7 +55,7 @@ class ProjectController extends Controller
             'status' => $validated['status'] ?? 'active',
         ]);
 
-        $project->members()->attach(auth()->id());
+        $project->members()->syncWithoutDetaching([auth()->id()]);
 
         return redirect()->route('projects.show', $project)
             ->with('success', 'Projekt byl vytvořen.');
@@ -139,7 +140,7 @@ class ProjectController extends Controller
         ]);
 
         // Model deletes, so each project also removes its todos' attachment files.
-        Project::whereIn('id', $validated['ids'])->get()->each->delete();
+        Project::visibleTo($request->user())->whereIn('id', $validated['ids'])->get()->each->delete();
 
         return back()->with('success', 'Vybrané projekty byly smazány.');
     }

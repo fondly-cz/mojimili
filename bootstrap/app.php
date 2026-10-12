@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\EnsureHasAnyRole;
+use App\Http\Middleware\EnsureProjectAccess;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => CheckRole::class,
             'hasRole' => EnsureHasAnyRole::class,
+            'projectAccess' => EnsureProjectAccess::class,
         ]);
 
         $middleware->trustProxies(

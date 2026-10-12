@@ -2,15 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Contracts\ProjectRestricted;
 use Database\Factories\ProjectFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
-class Project extends Model
+class Project extends Model implements ProjectRestricted
 {
     /** @use HasFactory<ProjectFactory> */
     use HasFactory;
@@ -130,5 +135,32 @@ class Project extends Model
 
         // Pivot values are not cast, so normalise to the same "1234.50" shape as the decimal casts.
         return number_format((float) ($userRate ?? $this->hourly_rate ?? 0), 2, '.', '');
+    }
+
+    /**
+     * Projects the user is assigned to; administrators see all of them.
+     *
+     * @param  Builder<Project>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        $query->whereIn('projects.id', DB::table('project_members')->select('project_id')->where('user_id', $user->id));
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return $user !== null && ($user->isAdmin() || $this->members()->whereKey($user->id)->exists());
+    }
+
+    /**
+     * A todo can be assigned only to a person from the project.
+     */
+    public function memberRule(): Exists
+    {
+        return Rule::exists('project_members', 'user_id')->where('project_id', $this->id);
     }
 }

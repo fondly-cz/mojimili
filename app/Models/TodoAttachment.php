@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\StoredAttachment;
+use App\Models\Contracts\ProjectRestricted;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
@@ -10,7 +11,7 @@ use Illuminate\Http\UploadedFile;
 /**
  * A file attached to a todo's description.
  */
-class TodoAttachment extends Model
+class TodoAttachment extends Model implements ProjectRestricted
 {
     use StoredAttachment;
 
@@ -49,5 +50,10 @@ class TodoAttachment extends Model
     protected function routeName(): string
     {
         return 'todo-attachments.show';
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->todo?->isVisibleTo($user);
     }
 }

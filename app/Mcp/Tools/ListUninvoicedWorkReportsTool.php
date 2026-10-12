@@ -22,7 +22,7 @@ class ListUninvoicedWorkReportsTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -35,6 +35,7 @@ class ListUninvoicedWorkReportsTool extends Tool
         ]);
 
         $reports = WorkReport::uninvoiced()
+            ->visibleTo($user)
             ->with($this->workReportRelations())
             ->when($validated['project_id'] ?? null, fn ($q, $projectId) => $q->whereHas(
                 'todo.todolist', fn ($l) => $l->where('project_id', $projectId)

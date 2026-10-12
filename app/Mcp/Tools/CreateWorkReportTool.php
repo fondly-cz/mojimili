@@ -37,6 +37,10 @@ class CreateWorkReportTool extends Tool
         ]);
 
         $todo = Todo::with('todolist.project')->findOrFail($validated['todo_id']);
+
+        if (! $this->canSee($user, $todo)) {
+            return $this->projectHidden();
+        }
         $project = $todo->todolist->project;
         // A todo collects reports from any number of people; default to the caller.
         $workerId = $validated['user_id'] ?? $user->id;

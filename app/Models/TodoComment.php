@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Contracts\ProjectRestricted;
 use App\Support\Mentions;
 use App\Support\RichText;
 use Database\Factories\TodoCommentFactory;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * A comment in a todo's thread (as in Freelo) with optional file attachments.
  */
-class TodoComment extends Model
+class TodoComment extends Model implements ProjectRestricted
 {
     /** @use HasFactory<TodoCommentFactory> */
     use HasFactory;
@@ -98,5 +99,10 @@ class TodoComment extends Model
     public function isManageableBy(?User $user): bool
     {
         return $user !== null && ($user->isAdmin() || $this->user_id === $user->id);
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->todo?->isVisibleTo($user);
     }
 }

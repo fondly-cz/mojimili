@@ -25,7 +25,7 @@ class GetProjectTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -50,6 +50,10 @@ class GetProjectTool extends Tool
             'todolists.todos.comments.user:id,name',
             'todolists.todos.comments.attachments',
         ])->where('id', $validated['id'])->firstOrFail();
+
+        if (! $this->canSee($user, $project)) {
+            return $this->projectHidden();
+        }
 
         return Response::text(collect([
             'id' => $project->id,

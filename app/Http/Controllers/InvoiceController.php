@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Actions\InvoiceWorkReports;
 use App\Models\Invoice;
+use App\Models\WorkReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
         $invoices = Invoice::query()
+            ->visibleTo($request->user())
             ->withTotals()
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -38,6 +41,8 @@ class InvoiceController extends Controller
             'work_report_ids.*' => 'integer',
             'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ]);
+
+        $this->ensureReportsVisible($request, $validated['work_report_ids']);
 
         $invoice = DB::transaction(function () use ($validated, $invoiceWorkReports) {
             $invoice = Invoice::create([
@@ -100,6 +105,8 @@ class InvoiceController extends Controller
             'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ]);
 
+        $this->ensureReportsVisible($request, $validated['work_report_ids']);
+
         $invoiceWorkReports->handle(
             $invoice,
             $validated['work_report_ids'],
@@ -120,6 +127,20 @@ class InvoiceController extends Controller
         $invoice->workReports()->whereIn('id', $validated['work_report_ids'])->update(['invoice_id' => null]);
 
         return back()->with('success', 'Výkazy byly odebrány z faktury.');
+    }
+
+    /**
+     * Reports of a project hidden from the user are treated as if they did not exist.
+     *
+     * @param  array<int, int>  $workReportIds
+     *
+     * @throws ValidationException
+     */
+    private function ensureReportsVisible(Request $request, array $workReportIds): void
+    {
+        if (WorkReport::idsHiddenFrom($request->user(), $workReportIds) !== []) {
+            throw ValidationException::withMessages(['work_report_ids' => 'Některé vybrané výkazy neexistují.']);
+        }
     }
 
     /**

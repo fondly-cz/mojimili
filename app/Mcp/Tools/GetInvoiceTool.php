@@ -21,7 +21,7 @@ class GetInvoiceTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -31,8 +31,14 @@ class GetInvoiceTool extends Tool
             'id.exists' => 'Faktura s tímto ID neexistuje. Seznam získáš nástrojem list-invoices.',
         ]);
 
+        $invoice = $this->freshInvoice($validated['id']);
+
+        if (! $this->canSee($user, $invoice)) {
+            return $this->projectHidden();
+        }
+
         return Response::text(json_encode(
-            $this->describeInvoice($this->freshInvoice($validated['id']), withWorkReports: true),
+            $this->describeInvoice($invoice, withWorkReports: true),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE,
         ));
     }

@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class TodoController extends Controller
 {
+    private const MESSAGES = [
+        'assigned_user_id.exists' => 'Řešitelem může být jen osoba přiřazená k projektu.',
+    ];
+
     public function store(Request $request, Todolist $todolist)
     {
         $validated = $request->validate([
@@ -20,11 +24,11 @@ class TodoController extends Controller
             'description' => 'nullable|string',
             'days' => 'nullable|integer|min:0',
             'parent_id' => 'nullable|integer|exists:todos,id',
-            'assigned_user_id' => 'nullable|exists:users,id',
+            'assigned_user_id' => ['nullable', $todolist->project->memberRule()],
             'due_date' => 'nullable|date',
             ...Todo::detailRules(),
             ...self::labelRules(),
-        ]);
+        ], self::MESSAGES);
 
         // A parent from another list would produce a todo that renders nowhere.
         if (! empty($validated['parent_id'])
@@ -82,7 +86,7 @@ class TodoController extends Controller
             'description' => 'nullable|string',
             'days' => 'sometimes|integer|min:0',
             'is_done' => 'sometimes|boolean',
-            'assigned_user_id' => 'nullable|exists:users,id',
+            'assigned_user_id' => ['nullable', $todo->todolist->project->memberRule()],
             'due_date' => 'nullable|date',
             'sort_order' => 'sometimes|integer|min:0',
             'parent_id' => 'sometimes|nullable|integer',
@@ -94,7 +98,7 @@ class TodoController extends Controller
             'files.*' => 'file|max:'.TodoComment::MAX_FILE_KILOBYTES,
             'remove_attachment_ids' => 'sometimes|array',
             'remove_attachment_ids.*' => 'integer',
-        ]);
+        ], self::MESSAGES);
 
         $files = $request->file('files', []);
         $removeIds = $validated['remove_attachment_ids'] ?? [];

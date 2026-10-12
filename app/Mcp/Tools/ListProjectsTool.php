@@ -21,7 +21,7 @@ class ListProjectsTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -33,6 +33,7 @@ class ListProjectsTool extends Tool
         ]);
 
         $projects = Project::query()
+            ->visibleTo($user)
             ->with('company:id,name')
             ->withCount('todolists')
             ->when($validated['search'] ?? null, fn ($query, $search) => $query->where(

@@ -17,6 +17,7 @@ class BillingController extends Controller
     public function index(Request $request)
     {
         $reports = WorkReport::uninvoiced()
+            ->visibleTo($request->user())
             ->with([
                 'user:id,name',
                 'todo:id,todolist_id,name',
@@ -40,11 +41,11 @@ class BillingController extends Controller
         return inertia('Billing/Index', [
             'reports' => $reports,
             'filters' => $request->only(['project_id', 'company_id', 'user_id', 'date_from', 'date_to']),
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'projects' => Project::visibleTo($request->user())->orderBy('name')->get(['id', 'name']),
             'companies' => Company::orderBy('name')->get(['id', 'name']),
             'users' => User::orderBy('name')->get(['id', 'name']),
             // Recent invoices the selected reports can be added to.
-            'invoices' => Invoice::latest('id')->limit(30)->get(['id', 'number', 'issued_at']),
+            'invoices' => Invoice::visibleTo($request->user())->latest('id')->limit(30)->get(['id', 'number', 'issued_at']),
         ]);
     }
 }

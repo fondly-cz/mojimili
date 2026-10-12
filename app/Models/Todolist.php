@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Contracts\ProjectRestricted;
 use Database\Factories\TodolistFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Todolist extends Model
+class Todolist extends Model implements ProjectRestricted
 {
     /** @use HasFactory<TodolistFactory> */
     use HasFactory;
@@ -45,5 +46,10 @@ class Todolist extends Model
     public function calculation(): BelongsTo
     {
         return $this->belongsTo(Calculation::class);
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->project?->isVisibleTo($user);
     }
 }
