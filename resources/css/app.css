@@ -67,3 +67,13 @@ textarea:focus {
 .rich-images img {
     cursor: zoom-in;
 }
+
+/* A person mentioned in rich text; see App\Support\Mentions. */
+.mention {
+    padding: 0.1em 0.4em;
+    border-radius: 0.5em;
+    background-color: color-mix(in srgb, var(--color-brand-primary-from) 12%, transparent);
+    color: var(--color-brand-primary-from);
+    font-weight: 700;
+    white-space: nowrap;
+}

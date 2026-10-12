@@ -38,6 +38,8 @@ class UpdateProjectTool extends Tool
             'user_rates' => 'sometimes|array',
             'user_rates.*.user_id' => 'required|integer|distinct|exists:users,id',
             'user_rates.*.hourly_rate' => 'nullable|numeric|min:0|max:99999999',
+            'member_ids' => 'sometimes|array',
+            'member_ids.*' => 'integer|distinct|exists:users,id',
         ], [
             'id.exists' => 'Projekt s tímto ID neexistuje. Seznam získáš nástrojem list-projects.',
             'status.in' => 'Stav projektu musí být "active", "on_hold", "done" nebo "archived".',
@@ -51,7 +53,11 @@ class UpdateProjectTool extends Tool
         }
 
         DB::transaction(function () use ($project, $validated) {
-            $project->update(collect($validated)->except('user_rates')->all());
+            $project->update(collect($validated)->except(['user_rates', 'member_ids'])->all());
+
+            if (array_key_exists('member_ids', $validated)) {
+                $project->members()->sync($validated['member_ids']);
+            }
 
             if (array_key_exists('user_rates', $validated)) {
                 // A null rate removes the person's override.
@@ -116,6 +122,10 @@ class UpdateProjectTool extends Tool
                     'user_id' => $schema->integer()->description('ID uživatele.')->required(),
                     'hourly_rate' => $schema->number()->description('Sazba osoby v Kč bez DPH.'),
                 ])),
+
+            'member_ids' => $schema->array()
+                ->description('ID osob přiřazených k projektu – nahradí všechny dosavadní. Jen přiřazené osoby lze v úkolech projektu zmínit přes @Jméno. ID osob zjistíš nástrojem list-users.')
+                ->items($schema->integer()),
         ];
     }
 }

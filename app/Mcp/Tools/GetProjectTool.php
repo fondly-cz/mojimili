@@ -38,6 +38,7 @@ class GetProjectTool extends Tool
         $project = Project::with([
             'company:id,name',
             'userRates:id,name',
+            'members:id,name',
             'todolists.todos.assignee:id,name',
             'todolists.todos.creator:id,name',
             'todolists.todos.completer:id,name',
@@ -63,6 +64,10 @@ class GetProjectTool extends Tool
                 'user_id' => $user->id,
                 'user_name' => $user->name,
                 'hourly_rate' => $user->pivot->hourly_rate,
+            ])->all(),
+            'members' => $project->members->map(fn ($user) => [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
             ])->all(),
             'company_id' => $project->company_id,
             'company_name' => $project->company?->name,

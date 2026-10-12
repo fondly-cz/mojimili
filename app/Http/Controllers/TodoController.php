@@ -50,6 +50,7 @@ class TodoController extends Controller
     {
         $todo->load([
             'todolist.project.userRates:id,name',
+            'todolist.project.members:id,name,avatar',
             'parent:id,name',
             'children' => fn ($query) => $query->withCount('children'),
             'children.assignee:id,name',

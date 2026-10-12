@@ -17,6 +17,7 @@ use App\Http\Controllers\PassportKeyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
+use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TodoCommentController;
@@ -46,6 +47,9 @@ Route::middleware(['auth', 'hasRole'])->group(function () {
     // Projekty, seznamy úkolů a úkoly
     Route::post('projects/bulk-delete', [ProjectController::class, 'bulkDelete'])->name('projects.bulk-delete');
     Route::resource('projects', ProjectController::class);
+
+    Route::post('projects/{project}/members', [ProjectMemberController::class, 'store'])->name('projects.members.store');
+    Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->name('projects.members.destroy');
 
     Route::post('projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('projects.documents.store');
     Route::patch('project-documents/{document}', [ProjectDocumentController::class, 'update'])->name('project-documents.update');
