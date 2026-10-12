@@ -54,6 +54,10 @@ class CreateTodoCommentTool extends Tool
         }
 
         $todo = Todo::with('todolist.project')->findOrFail($validated['todo_id']);
+
+        if (! $this->canSee($user, $todo)) {
+            return $this->projectHidden();
+        }
         // An imported author without a CRM account is shown by name only.
         $authorId = $validated['user_id'] ?? (empty($validated['author_name']) ? $user->id : null);
 

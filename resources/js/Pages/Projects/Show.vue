@@ -171,7 +171,7 @@
                             :key="todo.id"
                             :todo="todo"
                             :all-todos="list.todos"
-                            :users="users"
+                            :users="assignableUsers"
                             @toggle="toggleTodo"
                             @assign="assignTodo"
                             @due-date="setDueDate"
@@ -323,6 +323,16 @@ const statusStyles = {
     done: 'bg-brand-accent text-white shadow-blue-100',
     archived: 'bg-gray-400 text-white shadow-gray-100',
 }
+
+// A todo can be handed only to a person from the project; someone removed since stays on the todos they hold.
+const assignableUsers = computed(() => {
+    const memberIds = new Set(props.project.members.map(member => member.id))
+    const former = allTodos.value
+        .map(todo => todo.assignee)
+        .filter(assignee => assignee && !memberIds.has(assignee.id))
+
+    return [...props.project.members, ...new Map(former.map(user => [user.id, user])).values()]
+})
 
 const allTodos = computed(() => props.project.todolists.flatMap(l => l.todos))
 const totalCount = computed(() => allTodos.value.length)

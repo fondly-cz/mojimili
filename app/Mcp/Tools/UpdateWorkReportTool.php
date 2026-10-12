@@ -22,7 +22,7 @@ class UpdateWorkReportTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -37,6 +37,10 @@ class UpdateWorkReportTool extends Tool
 
         $report = WorkReport::with('todo.todolist.project')->findOrFail($validated['id']);
         unset($validated['id']);
+
+        if (! $this->canSee($user, $report)) {
+            return $this->projectHidden();
+        }
 
         if ($report->isInvoiced()) {
             return Response::error('Vyfakturovaný výkaz nelze upravit. Nejdřív ho odeber z faktury.');

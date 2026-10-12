@@ -58,6 +58,14 @@ class CreateTodoTool extends Tool
 
         $todolist = Todolist::with('project')->findOrFail($todolistId);
 
+        if (! $this->canSee($user, $todolist)) {
+            return $this->projectHidden();
+        }
+
+        if (isset($validated['assigned_user_id']) && ! $todolist->project->members()->whereKey($validated['assigned_user_id'])->exists()) {
+            return $this->assigneeNotMember();
+        }
+
         [$files, $error] = $this->decodeAttachments($validated['attachments'] ?? [], $user);
 
         if ($error) {

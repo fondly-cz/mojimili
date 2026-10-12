@@ -22,7 +22,7 @@ class DeleteInvoiceTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -33,6 +33,10 @@ class DeleteInvoiceTool extends Tool
         ]);
 
         $invoice = Invoice::findOrFail($validated['id']);
+
+        if (! $this->canSee($user, $invoice)) {
+            return $this->projectHidden();
+        }
 
         $released = DB::transaction(function () use ($invoice) {
             $released = $invoice->workReports()->update(['invoice_id' => null]);

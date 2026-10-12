@@ -39,6 +39,10 @@ class UpdateTodoCommentTool extends Tool
 
         $comment = TodoComment::with('attachments', 'todo')->findOrFail($validated['id']);
 
+        if (! $this->canSee($user, $comment)) {
+            return $this->projectHidden();
+        }
+
         if (! $comment->isManageableBy($user)) {
             return Response::error('Komentář může upravit jen jeho autor nebo administrátor.');
         }

@@ -22,7 +22,7 @@ class ListInvoicesTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -32,6 +32,7 @@ class ListInvoicesTool extends Tool
         ]);
 
         $invoices = Invoice::query()
+            ->visibleTo($user)
             ->withTotals()
             ->when($validated['search'] ?? null, fn ($query, $search) => $query->where(
                 fn ($q) => $q->where('number', 'like', "%{$search}%")

@@ -15,6 +15,8 @@ class MentionsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $everyoneInEveryProject = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -22,9 +24,12 @@ class MentionsTest extends TestCase
         $this->withoutVite();
     }
 
-    private function manager(): User
+    /**
+     * An administrator posts in any project without being assigned to it.
+     */
+    private function admin(): User
     {
-        return User::factory()->create(['role' => UserRole::MANAGER]);
+        return User::factory()->create(['role' => UserRole::ADMIN]);
     }
 
     private function todoIn(Project $project): Todo
@@ -44,7 +49,7 @@ class MentionsTest extends TestCase
         $project->members()->attach($jana);
         $todo = $this->todoIn($project);
 
-        $this->actingAs($this->manager())
+        $this->actingAs($this->admin())
             ->post("/todos/{$todo->id}/comments", ['body' => '<p>Mrkni na to prosím, @jana nováková, díky.</p>'])
             ->assertSessionHasNoErrors();
 
@@ -60,7 +65,7 @@ class MentionsTest extends TestCase
         User::factory()->create(['name' => 'Petr Cizí']);
         $todo = $this->todoIn($project);
 
-        $this->actingAs($this->manager())
+        $this->actingAs($this->admin())
             ->post("/todos/{$todo->id}/comments", ['body' => '<p>Co na to @Petr Cizí?</p>'])
             ->assertSessionHasNoErrors();
 
@@ -75,7 +80,7 @@ class MentionsTest extends TestCase
         $outsider = User::factory()->create(['name' => 'Petr Cizí']);
         $todo = $this->todoIn($project);
 
-        $this->actingAs($this->manager())
+        $this->actingAs($this->admin())
             ->post("/todos/{$todo->id}/comments", ['body' => "<p>{$this->mention($outsider)}</p>"])
             ->assertSessionHasNoErrors();
 
@@ -91,7 +96,7 @@ class MentionsTest extends TestCase
         $jana = User::factory()->create(['name' => 'Jana Nováková']);
         $project->members()->attach($jana);
         $todo = $this->todoIn($project);
-        $author = $this->manager();
+        $author = $this->admin();
 
         $this->actingAs($author)->post("/todos/{$todo->id}/comments", ['body' => '<p>@Jana Nováková</p>']);
         $comment = $todo->comments()->firstOrFail();
@@ -128,7 +133,7 @@ class MentionsTest extends TestCase
         $project->members()->attach($jana);
         $todo = $this->todoIn($project);
 
-        $this->actingAs($this->manager())
+        $this->actingAs($this->admin())
             ->patch("/todos/{$todo->id}", ['description' => '<p>Zadání pro @Jana Nováková</p>'])
             ->assertSessionHasNoErrors();
 
@@ -139,7 +144,7 @@ class MentionsTest extends TestCase
     {
         $project = Project::factory()->create();
         $jana = User::factory()->create();
-        $manager = $this->manager();
+        $manager = $this->admin();
 
         $this->actingAs($manager)->post("/projects/{$project->id}/members", ['user_id' => $jana->id])->assertSessionHasNoErrors();
         $this->actingAs($manager)->post("/projects/{$project->id}/members", ['user_id' => $jana->id])->assertSessionHasNoErrors();
@@ -155,7 +160,7 @@ class MentionsTest extends TestCase
 
     public function test_whoever_creates_a_project_becomes_its_member(): void
     {
-        $manager = $this->manager();
+        $manager = $this->admin();
 
         $this->actingAs($manager)->post('/projects', ['name' => 'Redesign webu'])->assertSessionHasNoErrors();
 

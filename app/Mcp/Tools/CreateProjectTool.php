@@ -44,6 +44,9 @@ class CreateProjectTool extends Tool
             'user_id' => $user->id,
         ]);
 
+        // Otherwise the project would be hidden from the person who has just created it.
+        $project->members()->syncWithoutDetaching([$user->id]);
+
         return Response::text(sprintf(
             "Projekt \"%s\" byl založen (project_id %d, stav %s).\nDetail v CRM: %s",
             $project->name,

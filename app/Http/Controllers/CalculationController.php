@@ -84,7 +84,7 @@ class CalculationController extends Controller
         return inertia('Calculations/Show', [
             'calculation' => $calculation->load('items'),
             // For the "turn items into a todolist" modal.
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'projects' => Project::visibleTo(request()->user())->orderBy('name')->get(['id', 'name']),
             'views' => $this->viewLog($calculation),
         ]);
     }

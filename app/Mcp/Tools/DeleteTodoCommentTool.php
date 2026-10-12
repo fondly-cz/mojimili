@@ -33,6 +33,10 @@ class DeleteTodoCommentTool extends Tool
 
         $comment = TodoComment::with('todo')->findOrFail($validated['id']);
 
+        if (! $this->canSee($user, $comment)) {
+            return $this->projectHidden();
+        }
+
         if (! $comment->isManageableBy($user)) {
             return Response::error('Komentář může smazat jen jeho autor nebo administrátor.');
         }

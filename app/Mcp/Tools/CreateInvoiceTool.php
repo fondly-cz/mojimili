@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Actions\InvoiceWorkReports;
 use App\Models\Invoice;
+use App\Models\WorkReport;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,10 @@ class CreateInvoiceTool extends Tool
             'work_report_ids.*' => 'integer',
             'hourly_rate' => 'nullable|numeric|min:0|max:99999999',
         ]);
+
+        if (WorkReport::idsHiddenFrom($user, $validated['work_report_ids']) !== []) {
+            return $this->projectHidden();
+        }
 
         $invoice = DB::transaction(function () use ($validated, $user, $invoiceWorkReports) {
             $invoice = Invoice::create([

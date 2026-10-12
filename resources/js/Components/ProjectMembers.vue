@@ -3,7 +3,7 @@
         <h2 class="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Lidé v projektu ({{ members.length }})</h2>
 
         <div class="flex flex-wrap items-center gap-2">
-            <p v-if="!members.length" class="text-sm font-bold text-gray-300">K projektu zatím není nikdo přiřazený, v úkolech proto nejde nikoho zmínit přes @.</p>
+            <p v-if="!members.length" class="text-sm font-bold text-gray-300">K projektu zatím není nikdo přiřazený. Vidí ho jen administrátoři a úkoly nejde nikomu přidělit.</p>
 
             <span
                 v-for="member in members"

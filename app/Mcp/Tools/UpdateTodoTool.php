@@ -51,8 +51,16 @@ class UpdateTodoTool extends Tool
             'assigned_user_id.exists' => 'Uživatel s tímto ID v CRM neexistuje.',
         ]);
 
-        $todo = Todo::findOrFail($validated['id']);
+        $todo = Todo::with('todolist.project')->findOrFail($validated['id']);
         unset($validated['id']);
+
+        if (! $this->canSee($user, $todo)) {
+            return $this->projectHidden();
+        }
+
+        if (isset($validated['assigned_user_id']) && ! $todo->todolist->project->members()->whereKey($validated['assigned_user_id'])->exists()) {
+            return $this->assigneeNotMember();
+        }
 
         if ($validated === []) {
             return Response::error('Neuvedl jsi žádnou změnu. Vyplň alespoň jedno pole, které se má upravit.');

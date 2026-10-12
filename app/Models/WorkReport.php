@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Contracts\ProjectRestricted;
 use Closure;
 use Database\Factories\WorkReportFactory;
 use Illuminate\Contracts\Validation\DataAwareRule;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class WorkReport extends Model
+class WorkReport extends Model implements ProjectRestricted
 {
     /** @use HasFactory<WorkReportFactory> */
     use HasFactory;
@@ -145,5 +146,34 @@ class WorkReport extends Model
     public function scopeUninvoiced(Builder $query): void
     {
         $query->whereNull('invoice_id');
+    }
+
+    /**
+     * Reports of the projects the user is assigned to.
+     *
+     * @param  Builder<WorkReport>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        $query->whereHas('todo.todolist.project', fn ($project) => $project->visibleTo($user));
+    }
+
+    /**
+     * The given reports that exist but sit in a project hidden from the user.
+     *
+     * @param  array<int, int>  $ids
+     * @return array<int, int>
+     */
+    public static function idsHiddenFrom(User $user, array $ids): array
+    {
+        return self::whereIn('id', $ids)
+            ->whereNotIn('id', self::visibleTo($user)->select('work_reports.id'))
+            ->pluck('id')
+            ->all();
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return (bool) $this->todo?->isVisibleTo($user);
     }
 }

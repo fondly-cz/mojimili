@@ -53,6 +53,10 @@ class CreateTodolistTool extends Tool
 
         $project = Project::findOrFail($validated['project_id']);
 
+        if (! $this->canSee($user, $project)) {
+            return $this->projectHidden();
+        }
+
         $todolist = DB::transaction(function () use ($project, $validated, $user) {
             $todolist = $project->todolists()->create([
                 'name' => $validated['name'],

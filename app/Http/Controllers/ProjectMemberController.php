@@ -19,9 +19,14 @@ class ProjectMemberController extends Controller
         return back()->with('success', 'Osoba byla přidána do projektu.');
     }
 
-    public function destroy(Project $project, User $user)
+    public function destroy(Request $request, Project $project, User $user)
     {
         $project->members()->detach($user->id);
+
+        // Whoever removes themselves no longer sees the project they came from.
+        if (! $project->isVisibleTo($request->user())) {
+            return redirect()->route('projects.index')->with('success', 'Z projektu jste se odebrali.');
+        }
 
         return back()->with('success', 'Osoba byla z projektu odebrána.');
     }

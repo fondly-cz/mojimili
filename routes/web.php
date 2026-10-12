@@ -27,7 +27,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'hasRole'])->group(function () {
+Route::middleware(['auth', 'hasRole', 'projectAccess'])->group(function () {
     Route::get('/', [CrmController::class, 'welcome'])->name('dashboard');
     Route::resource('companies', CompanyController::class);
     Route::post('companies/bulk-delete', [CompanyController::class, 'bulkDelete'])->name('companies.bulk-delete');

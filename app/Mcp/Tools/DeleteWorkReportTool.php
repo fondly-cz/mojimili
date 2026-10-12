@@ -21,7 +21,7 @@ class DeleteWorkReportTool extends Tool
 
     public function handle(Request $request): Response
     {
-        if (! $this->crmUser($request)) {
+        if (! $user = $this->crmUser($request)) {
             return $this->accessDenied();
         }
 
@@ -31,7 +31,11 @@ class DeleteWorkReportTool extends Tool
             'id.exists' => 'Výkaz s tímto ID neexistuje.',
         ]);
 
-        $report = WorkReport::with('todo:id,name')->findOrFail($validated['id']);
+        $report = WorkReport::with('todo:id,todolist_id,name')->findOrFail($validated['id']);
+
+        if (! $this->canSee($user, $report)) {
+            return $this->projectHidden();
+        }
 
         if ($report->isInvoiced()) {
             return Response::error('Vyfakturovaný výkaz nelze smazat. Nejdřív ho odeber z faktury.');

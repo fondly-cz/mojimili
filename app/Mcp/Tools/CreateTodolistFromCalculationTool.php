@@ -67,15 +67,23 @@ class CreateTodolistFromCalculationTool extends Tool
             );
         }
 
-        $project = ! empty($validated['project_id'])
-            ? Project::findOrFail($validated['project_id'])
-            : Project::create([
-                'name' => $validated['project_name'],
-                'company_id' => $calculation->company_id,
-                'company_employee_id' => $calculation->company_employee_id,
-                'user_id' => $user->id,
-                'status' => 'active',
-            ]);
+        $existing = ! empty($validated['project_id']) ? Project::findOrFail($validated['project_id']) : null;
+
+        if ($existing && ! $this->canSee($user, $existing)) {
+            return $this->projectHidden();
+        }
+
+        $project = $existing ?? Project::create([
+            'name' => $validated['project_name'],
+            'company_id' => $calculation->company_id,
+            'company_employee_id' => $calculation->company_employee_id,
+            'user_id' => $user->id,
+            'status' => 'active',
+        ]);
+
+        if (! $existing) {
+            $project->members()->syncWithoutDetaching([$user->id]);
+        }
 
         $todolist = $createTodolist->handle($calculation, $project, $itemIds, $validated['name'] ?? null);
 
