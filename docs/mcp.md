@@ -12,6 +12,7 @@ Claude se tak připojí pod tvým vlastním CRM účtem a má přesně stejná p
 | `update-service` | admin | upraví existující službu |
 | `list-companies` | role v CRM | firmy a jejich kontaktní osoby (pro `company_id`) |
 | `create-company` | role v CRM | založí firmu včetně kontaktních osob |
+| `update-company` | role v CRM | upraví firmu a její kontaktní osoby; mění jen vyplněná pole |
 | `list-calculations` | role v CRM | seznam kalkulací |
 | `get-calculation` | role v CRM | detail kalkulace včetně položek |
 | `create-calculation` | role v CRM | vytvoří kalkulaci a vrátí veřejnou URL pro zákazníka |

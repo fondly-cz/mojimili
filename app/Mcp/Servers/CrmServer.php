@@ -28,6 +28,7 @@ use App\Mcp\Tools\ListServicesTool;
 use App\Mcp\Tools\ListUninvoicedWorkReportsTool;
 use App\Mcp\Tools\ListUsersTool;
 use App\Mcp\Tools\UpdateCalculationTool;
+use App\Mcp\Tools\UpdateCompanyTool;
 use App\Mcp\Tools\UpdateInvoiceTool;
 use App\Mcp\Tools\UpdateProjectTool;
 use App\Mcp\Tools\UpdateServiceTool;
@@ -49,6 +50,7 @@ Postup při vytváření kalkulace:
 1. Zavolej list-services a najdi ID služeb, které má kalkulace obsahovat. Nikdy si ID nevymýšlej.
 2. Volitelně zavolej list-companies, pokud má být kalkulace navázaná na firmu v CRM. Když firma v CRM ještě
    není, založ ji nástrojem create-company a použij vrácené company_id (případně company_employee_id).
+   Existující firmu a její kontaktní osoby upravíš nástrojem update-company.
 3. Zavolej create-calculation. Neuvedeš-li u položky cenu, dny nebo periodu platby, převezmou se z katalogu služby
    (cena = cost * (1 + margin/100)).
 4. Vrácenou veřejnou URL (public_url) můžeš poslat zákazníkovi, aby si položky odsouhlasil.
@@ -109,6 +111,7 @@ class CrmServer extends Server
         UpdateServiceTool::class,
         ListCompaniesTool::class,
         CreateCompanyTool::class,
+        UpdateCompanyTool::class,
         ListCalculationsTool::class,
         GetCalculationTool::class,
         CreateCalculationTool::class,

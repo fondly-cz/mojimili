@@ -10,8 +10,10 @@ use App\Mcp\Tools\CreateCompanyTool;
 use App\Mcp\Tools\CreateServiceTool;
 use App\Mcp\Tools\ListServicesTool;
 use App\Mcp\Tools\UpdateCalculationTool;
+use App\Mcp\Tools\UpdateCompanyTool;
 use App\Models\Calculation;
 use App\Models\Company;
+use App\Models\CompanyEmployee;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -144,6 +146,20 @@ class CrmServerTest extends TestCase
         $this->assertDatabaseCount('companies', 0);
     }
 
+    public function test_it_rejects_a_company_contact_without_an_email(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+
+        CrmServer::actingAs($user)
+            ->tool(CreateCompanyTool::class, [
+                'name' => 'LaDanza',
+                'contacts' => [['name' => 'Petra Nová']],
+            ])
+            ->assertHasErrors();
+
+        $this->assertDatabaseCount('companies', 0);
+    }
+
     public function test_user_without_role_cannot_create_a_company(): void
     {
         $user = User::factory()->create(['role' => null]);
@@ -153,6 +169,111 @@ class CrmServerTest extends TestCase
             ->assertHasErrors();
 
         $this->assertDatabaseCount('companies', 0);
+    }
+
+    public function test_it_updates_only_the_given_company_fields(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+        $company = Company::factory()->create([
+            'name' => 'LaDanza',
+            'ico' => '12345678',
+            'email' => 'info@ladanza.cz',
+            'status' => 'prospect',
+        ]);
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCompanyTool::class, [
+                'id' => $company->id,
+                'name' => 'LaDanza s.r.o.',
+                'email' => null,
+                'status' => 'active',
+            ])
+            ->assertOk()
+            ->assertSee('LaDanza s.r.o.');
+
+        $company->refresh();
+
+        $this->assertSame('LaDanza s.r.o.', $company->name);
+        $this->assertNull($company->email);
+        $this->assertSame('active', $company->status);
+        $this->assertSame('12345678', $company->ico);
+    }
+
+    public function test_it_updates_adds_and_removes_company_contacts(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+        $company = Company::factory()->create();
+        $kept = CompanyEmployee::factory()->for($company)->create(['name' => 'Petra Nová', 'position' => 'Jednatelka']);
+        $removed = CompanyEmployee::factory()->for($company)->create();
+        $untouched = CompanyEmployee::factory()->for($company)->create(['name' => 'Jan Starý']);
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCompanyTool::class, [
+                'id' => $company->id,
+                'contacts' => [
+                    ['id' => $kept->id, 'email' => 'petra@ladanza.cz'],
+                    ['name' => 'Karel Nový', 'email' => 'karel@ladanza.cz', 'position' => 'Obchod'],
+                ],
+                'remove_contact_ids' => [$removed->id],
+            ])
+            ->assertOk()
+            ->assertSee('Karel Nový');
+
+        $kept->refresh();
+
+        $this->assertSame('Petra Nová', $kept->name);
+        $this->assertSame('Jednatelka', $kept->position);
+        $this->assertSame('petra@ladanza.cz', $kept->email);
+        $this->assertDatabaseMissing('company_employees', ['id' => $removed->id]);
+        $this->assertDatabaseHas('company_employees', ['id' => $untouched->id, 'name' => 'Jan Starý']);
+        $this->assertDatabaseHas('company_employees', ['company_id' => $company->id, 'name' => 'Karel Nový']);
+    }
+
+    public function test_it_rejects_contacts_of_another_company(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+        $company = Company::factory()->create(['name' => 'LaDanza']);
+        $foreign = CompanyEmployee::factory()->for(Company::factory())->create(['name' => 'Cizí Osoba']);
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCompanyTool::class, [
+                'id' => $company->id,
+                'name' => 'Přejmenováno',
+                'contacts' => [['id' => $foreign->id, 'name' => 'Přepsáno']],
+            ])
+            ->assertHasErrors();
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCompanyTool::class, [
+                'id' => $company->id,
+                'remove_contact_ids' => [$foreign->id],
+            ])
+            ->assertHasErrors();
+
+        $this->assertSame('LaDanza', $company->refresh()->name);
+        $this->assertDatabaseHas('company_employees', ['id' => $foreign->id, 'name' => 'Cizí Osoba']);
+    }
+
+    public function test_it_rejects_a_company_update_without_changes(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::MANAGER]);
+        $company = Company::factory()->create();
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCompanyTool::class, ['id' => $company->id])
+            ->assertHasErrors();
+    }
+
+    public function test_user_without_role_cannot_update_a_company(): void
+    {
+        $user = User::factory()->create(['role' => null]);
+        $company = Company::factory()->create(['name' => 'LaDanza']);
+
+        CrmServer::actingAs($user)
+            ->tool(UpdateCompanyTool::class, ['id' => $company->id, 'name' => 'Přejmenováno'])
+            ->assertHasErrors();
+
+        $this->assertSame('LaDanza', $company->refresh()->name);
     }
 
     public function test_it_creates_a_calculation_with_nested_items_and_catalog_defaults(): void

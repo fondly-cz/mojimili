@@ -45,13 +45,14 @@ class CreateCompanyTool extends Tool
             'status' => 'nullable|string|in:active,inactive,prospect',
             'contacts' => 'nullable|array',
             'contacts.*.name' => 'required|string|max:255',
-            'contacts.*.email' => 'nullable|email|max:255',
+            'contacts.*.email' => 'required|email|max:255',
             'contacts.*.phone' => 'nullable|string|max:255',
             'contacts.*.position' => 'nullable|string|max:255',
         ], [
             'status.in' => 'Stav firmy musí být "active", "inactive" nebo "prospect".',
             'website.url' => 'Web musí být platná URL včetně https://.',
-            'contacts.*.name.required' => 'U každé kontaktní osoby uveď alespoň jméno.',
+            'contacts.*.name.required' => 'U každé kontaktní osoby uveď jméno.',
+            'contacts.*.email.required' => 'U každé kontaktní osoby uveď e-mail.',
         ]);
 
         $contacts = $validated['contacts'] ?? [];
@@ -156,7 +157,8 @@ class CreateCompanyTool extends Tool
                         ->required(),
 
                     'email' => $schema->string()
-                        ->description('E-mail kontaktní osoby.'),
+                        ->description('E-mail kontaktní osoby.')
+                        ->required(),
 
                     'phone' => $schema->string()
                         ->description('Telefon kontaktní osoby.'),
