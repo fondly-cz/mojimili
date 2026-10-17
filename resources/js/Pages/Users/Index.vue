@@ -105,6 +105,8 @@
                                     :class="{
                                         'bg-brand-primary-from text-white': user.role === 'admin',
                                         'bg-brand-accent text-white': user.role === 'manager',
+                                        'bg-amber-500 text-white': user.role === 'collaborator',
+                                        'bg-green-500 text-white': user.role === 'customer',
                                         'bg-gray-100 text-gray-400': !user.role
                                     }"
                                 >

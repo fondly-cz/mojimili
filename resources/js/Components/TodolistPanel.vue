@@ -18,7 +18,7 @@
                 </p>
             </div>
 
-            <Dropdown align="right" width="48" content-classes="py-1 bg-white">
+            <Dropdown v-if="!isCustomer" align="right" width="48" content-classes="py-1 bg-white">
                 <template #trigger>
                     <button
                         type="button"
@@ -61,6 +61,7 @@
 
         <div class="p-10">
             <button
+                v-if="!isCustomer"
                 @click="openNewTodo()"
                 class="mb-4 inline-flex items-center gap-2 rounded-full border-2 border-gray-100 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-brand-primary-from hover:text-brand-primary-from transition-all font-heading"
             >
@@ -197,7 +198,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Link, router, useForm } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import Dropdown from './Dropdown.vue'
 import Modal from './Modal.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -210,6 +211,8 @@ const props = defineProps({
     // The list's own page shows its name as a plain heading.
     detail: Boolean,
 })
+
+const isCustomer = computed(() => usePage().props.auth.user?.role === 'customer')
 
 // Done todos sink to the bottom, newest first, and only the first few show until expanded.
 const DONE_PREVIEW = 2

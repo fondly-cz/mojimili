@@ -9,8 +9,8 @@
         >
             <span v-if="reports.length === 0">+ Vykázat čas</span>
             <template v-else>
-                <span>{{ formatMinutes(totalMinutes) }} · {{ formatCurrency(totalAmount) }}</span>
-                <span class="px-2 py-0.5 rounded-lg border text-[8px]" :class="billingState.classes">
+                <span>{{ formatMinutes(totalMinutes) }}<template v-if="isStaff"> · {{ formatCurrency(totalAmount) }}</template></span>
+                <span v-if="isStaff" class="px-2 py-0.5 rounded-lg border text-[8px]" :class="billingState.classes">
                     {{ billingState.label }}
                 </span>
             </template>
@@ -24,12 +24,12 @@
                     <thead>
                         <tr class="text-left text-[9px] font-black uppercase tracking-widest text-gray-400">
                             <th class="py-1.5 pr-3">Datum</th>
-                            <th class="py-1.5 pr-3">Kdo</th>
+                            <th v-if="isStaff" class="py-1.5 pr-3">Kdo</th>
                             <th class="py-1.5 pr-3">Popis</th>
                             <th class="py-1.5 pr-3 text-right">Čas</th>
-                            <th class="py-1.5 pr-3 text-right">Sazba</th>
-                            <th class="py-1.5 pr-3 text-right">Částka</th>
-                            <th class="py-1.5 pr-3">Faktura</th>
+                            <th v-if="isStaff" class="py-1.5 pr-3 text-right">Sazba</th>
+                            <th v-if="isStaff" class="py-1.5 pr-3 text-right">Částka</th>
+                            <th v-if="isStaff" class="py-1.5 pr-3">Faktura</th>
                             <th class="py-1.5"></th>
                         </tr>
                     </thead>
@@ -39,12 +39,12 @@
                                 {{ formatDate(report.date) }}
                                 <span v-if="report.started_at" class="block text-[10px] text-gray-400">{{ formatTimeRange(report) }}</span>
                             </td>
-                            <td class="py-2 pr-3 whitespace-nowrap">{{ report.user?.name || '—' }}</td>
+                            <td v-if="isStaff" class="py-2 pr-3 whitespace-nowrap">{{ report.user?.name || '—' }}</td>
                             <td class="py-2 pr-3 text-gray-400">{{ report.description || '' }}</td>
                             <td class="py-2 pr-3 text-right whitespace-nowrap">{{ formatMinutes(report.minutes) }}</td>
-                            <td class="py-2 pr-3 text-right whitespace-nowrap">{{ formatCurrency(report.hourly_rate) }}/h</td>
-                            <td class="py-2 pr-3 text-right whitespace-nowrap font-black text-gray-900">{{ formatCurrency(reportAmount(report)) }}</td>
-                            <td class="py-2 pr-3 whitespace-nowrap">
+                            <td v-if="isStaff" class="py-2 pr-3 text-right whitespace-nowrap">{{ formatCurrency(report.hourly_rate) }}/h</td>
+                            <td v-if="isStaff" class="py-2 pr-3 text-right whitespace-nowrap font-black text-gray-900">{{ formatCurrency(reportAmount(report)) }}</td>
+                            <td v-if="isStaff" class="py-2 pr-3 whitespace-nowrap">
                                 <Link
                                     v-if="report.invoice"
                                     :href="`/invoices/${report.invoice.id}`"
@@ -84,11 +84,11 @@
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Čas</label>
                     <input v-model="duration" @input="onDurationInput" type="text" required placeholder="1:30" :class="inputClass">
                 </div>
-                <div class="md:col-span-1">
+                <div v-if="isStaff" class="md:col-span-1">
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Kč/h</label>
                     <input v-model="form.hourly_rate" type="number" min="0" step="0.01" :placeholder="rateFor(form.user_id)" :class="inputClass">
                 </div>
-                <div class="md:col-span-2">
+                <div v-if="isStaff" class="md:col-span-2">
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Kdo</label>
                     <select v-model="form.user_id" :class="inputClass">
                         <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
@@ -145,6 +145,9 @@ const props = defineProps({
 const rateFor = (userId) => props.userRates[userId] ?? props.defaultRate ?? '0'
 
 const page = usePage()
+
+// Collaborators report their own time only, without rates or other people's entries.
+const isStaff = computed(() => ['admin', 'manager'].includes(page.props.auth?.user?.role))
 
 const inputClass = 'block w-full px-3 py-2 bg-white border-gray-100 rounded-xl text-xs font-semibold text-gray-700 focus:ring-brand-primary-from focus:border-brand-primary-from'
 

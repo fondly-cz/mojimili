@@ -22,6 +22,7 @@
             <input
                 type="checkbox"
                 :checked="todo.is_done"
+                :disabled="isCustomer"
                 @change="$emit('toggle', todo)"
                 class="mt-1 h-5 w-5 shrink-0 rounded-lg border-gray-300 text-brand-primary-from focus:ring-brand-primary-from cursor-pointer"
             >
@@ -50,7 +51,7 @@
                         {{ todo.days }} dní
                     </span>
                     <span v-if="todo.estimated_minutes" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest" title="Odhadovaný čas">
-                        odhad {{ formatMinutes(todo.estimated_minutes) }}
+                        odhad {{ formatMinutes(todo.estimated_minutes) }}<template v-if="todo.spent_minutes != null"> · spotřebováno {{ formatMinutes(todo.spent_minutes) }}</template>
                     </span>
                     <span v-if="todo.due_time" class="px-2 py-0.5 bg-gray-50 text-[8px] font-black rounded-lg text-gray-400 uppercase tracking-widest" title="Čas termínu">
                         do {{ todo.due_time }}
@@ -86,6 +87,7 @@
                         </span>
                         <select
                             :value="todo.assigned_user_id || ''"
+                            :disabled="isCustomer"
                             @change="e => $emit('assign', { todo, userId: e.target.value || null })"
                             class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                             aria-label="Řešitel"
@@ -116,6 +118,7 @@
                     </button>
 
                     <button
+                        v-if="!isCustomer"
                         type="button"
                         @click="open = true; $emit('add-child', todo)"
                         class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-brand-primary-from transition-colors"
@@ -138,6 +141,7 @@
                     </svg>
                 </Link>
                 <button
+                    v-if="!isCustomer"
                     type="button"
                     @click="$emit('remove', todo)"
                     class="p-2 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -171,7 +175,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { Link, usePage } from '@inertiajs/vue3'
 import UserAvatar from './UserAvatar.vue'
 import { formatMinutes } from '../utils/billing'
 
@@ -209,5 +213,8 @@ const assignee = computed(() => props.users.find(u => u.id === props.todo.assign
 
 const doneChildren = computed(() => children.value.filter(t => t.is_done).length)
 
-const reportedMinutes = computed(() => (props.todo.work_reports || []).reduce((sum, r) => sum + r.minutes, 0))
+// A collaborator gets the total of everyone's time as spent_minutes instead of the individual entries.
+const reportedMinutes = computed(() => props.todo.spent_minutes
+    ?? (props.todo.work_reports || []).reduce((sum, r) => sum + r.minutes, 0))
+const isCustomer = computed(() => usePage().props.auth.user?.role === 'customer')
 </script>

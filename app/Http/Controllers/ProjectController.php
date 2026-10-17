@@ -6,6 +6,7 @@ use App\Models\Calculation;
 use App\Models\Company;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\TimeVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -83,6 +84,9 @@ class ProjectController extends Controller
             'invitations',
             'documents.user:id,name',
         ]);
+
+        TimeVisibility::applyToTodos($project->todolists->flatMap->todos, $user);
+        TimeVisibility::applyToProject($project, $user);
 
         // Which lists each member sees; only the lists the viewer sees are offered and reported.
         $access = DB::table('todolist_user')

@@ -43,6 +43,13 @@ class Activity extends Model
             return;
         }
 
+        // Reported time is for staff; a collaborator sees their own entries.
+        if (! $user->isStaff()) {
+            $query->where(fn (Builder $entries) => $entries
+                ->where('activities.event', 'not like', 'work_report.%')
+                ->when($user->isCollaborator(), fn (Builder $q) => $q->orWhere('activities.user_id', $user->id)));
+        }
+
         $query->whereIn('activities.project_id', Project::visibleTo($user)->select('projects.id'))
             ->where(fn (Builder $lists) => $lists
                 ->whereNull('activities.todolist_id')

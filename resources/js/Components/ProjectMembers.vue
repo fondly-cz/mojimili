@@ -3,6 +3,7 @@
         <div class="mb-4 flex items-center justify-between gap-4">
             <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Lidé v projektu ({{ members.length }})</h2>
             <button
+                v-if="canManage"
                 type="button"
                 @click="openAdd"
                 class="rounded-full border-2 border-gray-100 bg-white px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-brand-primary-from hover:text-brand-primary-from transition-all"
@@ -21,7 +22,9 @@
             >
                 <UserAvatar :user="member" class="h-6 w-6 text-[8px]" />
                 {{ member.name }}
+                <span v-if="!canManage" class="px-1 text-[9px] font-black uppercase tracking-widest text-gray-300">{{ accessLabel(member) }}</span>
                 <button
+                    v-if="canManage"
                     type="button"
                     @click="openEdit(member)"
                     class="rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-brand-primary-from transition-colors"
@@ -30,6 +33,7 @@
                     {{ accessLabel(member) }}
                 </button>
                 <button
+                    v-if="canManage"
                     type="button"
                     @click="remove(member)"
                     class="text-gray-300 hover:text-red-500 transition-colors"
@@ -49,6 +53,7 @@
                 {{ invitation.email }}
                 <span class="text-[9px] font-black uppercase tracking-widest text-gray-300">pozvánka</span>
                 <button
+                    v-if="canManage"
                     type="button"
                     @click="cancelInvitation(invitation)"
                     class="text-gray-300 hover:text-red-500 transition-colors"
@@ -168,7 +173,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { router, useForm, usePage } from '@inertiajs/vue3'
 import Modal from './Modal.vue'
 import UserAvatar from './UserAvatar.vue'
 
@@ -179,6 +184,9 @@ const props = defineProps({
     invitations: { type: Array, default: () => [] },
     todolists: { type: Array, default: () => [] },
 })
+
+// Administrators and managers decide who is in a project and what they see.
+const canManage = ['admin', 'manager'].includes(usePage().props.auth.user?.role)
 
 const dialog = reactive({ show: false, member: null })
 const search = ref('')

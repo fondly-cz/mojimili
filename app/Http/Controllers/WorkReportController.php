@@ -12,6 +12,11 @@ class WorkReportController extends Controller
     {
         $validated = $request->validate(WorkReport::rules());
 
+        // A collaborator reports only their own time, at the rate the project sets for them.
+        if (! $request->user()->isStaff()) {
+            unset($validated['user_id'], $validated['hourly_rate']);
+        }
+
         $userId = $validated['user_id'] ?? auth()->id();
 
         $todo->workReports()->create([
@@ -26,11 +31,17 @@ class WorkReportController extends Controller
 
     public function update(Request $request, WorkReport $workReport)
     {
+        abort_unless($this->mayChange($request, $workReport), 403);
+
         if ($workReport->isInvoiced()) {
             return back()->withErrors(['work_report' => 'Vyfakturovaný výkaz nelze upravit. Nejdřív ho odeberte z faktury.']);
         }
 
         $validated = $request->validate(WorkReport::rules(partial: true));
+
+        if (! $request->user()->isStaff()) {
+            unset($validated['user_id'], $validated['hourly_rate']);
+        }
 
         if (array_key_exists('hourly_rate', $validated) && $validated['hourly_rate'] === null) {
             $validated['hourly_rate'] = $workReport->todo->todolist->project->rateFor(
@@ -43,8 +54,10 @@ class WorkReportController extends Controller
         return back()->with('success', 'Výkaz byl upraven.');
     }
 
-    public function destroy(WorkReport $workReport)
+    public function destroy(Request $request, WorkReport $workReport)
     {
+        abort_unless($this->mayChange($request, $workReport), 403);
+
         if ($workReport->isInvoiced()) {
             return back()->withErrors(['work_report' => 'Vyfakturovaný výkaz nelze smazat. Nejdřív ho odeberte z faktury.']);
         }
@@ -52,5 +65,13 @@ class WorkReportController extends Controller
         $workReport->delete();
 
         return back()->with('success', 'Výkaz byl smazán.');
+    }
+
+    /**
+     * Staff manage any report; a collaborator only their own.
+     */
+    private function mayChange(Request $request, WorkReport $workReport): bool
+    {
+        return $request->user()->isStaff() || $workReport->user_id === $request->user()->id;
     }
 }

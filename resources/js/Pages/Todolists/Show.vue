@@ -16,7 +16,7 @@
             >
                 ← Zpět na projekt
             </Link>
-            <p class="text-xs font-bold text-gray-400">Vykázáno v seznamu: {{ formatMinutes(reportedMinutes) }}</p>
+            <p v-if="reportedMinutes != null" class="text-xs font-bold text-gray-400">Vykázáno v seznamu: {{ formatMinutes(reportedMinutes) }}</p>
         </div>
 
         <TodolistPanel :list="todolist" :assignable-users="assignableUsers" detail />
@@ -33,7 +33,7 @@ import { formatMinutes } from '../../utils/billing'
 
 const props = defineProps({
     todolist: Object,
-    reportedMinutes: Number,
+    reportedMinutes: { type: Number, default: null },
 })
 
 // A todo can be handed only to a person from the project; someone removed since stays on the todos they hold.
