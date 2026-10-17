@@ -8,6 +8,7 @@ use App\Models\TodoAttachment;
 use App\Models\TodoComment;
 use App\Models\Todolist;
 use App\Models\User;
+use App\Support\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -119,7 +120,11 @@ class TodoController extends Controller
             $todo->update(collect($validated)->except('label_ids')->all());
 
             if (array_key_exists('label_ids', $validated)) {
-                $todo->labels()->sync($validated['label_ids'] ?? []);
+                $labelChanges = $todo->labels()->sync($validated['label_ids'] ?? []);
+
+                if ($labelChanges['attached'] !== [] || $labelChanges['detached'] !== []) {
+                    ActivityLog::noteTodoField($todo, 'labels');
+                }
             }
 
             $todo->attachments()->whereIn('id', $removeIds)->get()->each->delete();

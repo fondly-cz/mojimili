@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\ProjectInvitation;
 use App\Models\User;
+use App\Support\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,7 @@ class ProjectMemberController extends Controller
 
         $email = mb_strtolower($validated['email']);
 
-        ProjectInvitation::updateOrCreate(
+        $invitation = ProjectInvitation::updateOrCreate(
             ['project_id' => $project->id, 'email' => $email],
             [
                 'all_todolists' => $allTodolists,
@@ -50,6 +51,11 @@ class ProjectMemberController extends Controller
                 'invited_by_user_id' => $request->user()->id,
             ],
         );
+
+        ActivityLog::note('project.invited', $project, $email, [
+            'all_todolists' => $allTodolists,
+            'todolists' => $allTodolists ? [] : $project->todolists()->whereIn('id', $invitation->todolist_ids)->pluck('name')->all(),
+        ]);
 
         return back()->with('success', "Pozvánka pro {$email} je uložená. Do projektu se osoba připojí, jakmile se s tímto e-mailem zaregistruje.");
     }
@@ -87,6 +93,8 @@ class ProjectMemberController extends Controller
         abort_unless($invitation->project_id === $project->id, 404);
 
         $invitation->delete();
+
+        ActivityLog::note('project.invitation_cancelled', $project, $invitation->email);
 
         return back()->with('success', 'Pozvánka byla zrušena.');
     }

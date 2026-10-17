@@ -20,7 +20,14 @@ trait InteractsWithCrmUser
     {
         $user = $request->user();
 
-        return $user instanceof User && $user->hasAnyRole() ? $user : null;
+        if (! $user instanceof User || ! $user->hasAnyRole()) {
+            return null;
+        }
+
+        // The change history credits whoever is signed in; over MCP that is the token's owner.
+        auth()->setUser($user);
+
+        return $user;
     }
 
     protected function accessDenied(): Response

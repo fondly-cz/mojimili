@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Contracts\ProjectRestricted;
+use App\Support\ActivityLog;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -142,10 +143,17 @@ class Project extends Model implements ProjectRestricted
      */
     public function grantAccess(User $user, bool $allTodolists, array $todolistIds = [], Collection|array|null $within = null): void
     {
+        $wasMember = $this->members()->whereKey($user->id)->exists();
+
         $this->members()->syncWithoutDetaching([$user->id => ['all_todolists' => $allTodolists]]);
 
         $grantable = collect($within ?? $this->todolists()->pluck('id'));
         $chosen = $allTodolists ? [] : array_values(array_intersect($todolistIds, $grantable->all()));
+
+        ActivityLog::note($wasMember ? 'project.member_access_changed' : 'project.member_added', $this, $user->name, [
+            'all_todolists' => $allTodolists,
+            'todolists' => $allTodolists ? [] : $this->todolists()->whereIn('id', $chosen)->pluck('name')->all(),
+        ]);
 
         DB::table('todolist_user')->where('user_id', $user->id)->whereIn('todolist_id', $grantable)->delete();
 
@@ -164,6 +172,8 @@ class Project extends Model implements ProjectRestricted
     public function revokeAccess(User $user): void
     {
         $this->members()->detach($user->id);
+
+        ActivityLog::note('project.member_removed', $this, $user->name);
 
         DB::table('todolist_user')
             ->where('user_id', $user->id)
