@@ -28,12 +28,14 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 <button
+                    v-if="isStaff"
                     @click="openFromCalculation"
                     class="inline-flex items-center gap-2 bg-white border-2 border-gray-100 px-6 py-4 rounded-full font-bold text-gray-500 hover:text-brand-primary-from hover:border-brand-primary-from transition-all font-heading uppercase tracking-widest text-[10px]"
                 >
                     Z kalkulace
                 </button>
                 <button
+                    v-if="!isCustomer"
                     @click="newList.show = true"
                     class="inline-flex items-center gap-2 brand-gradient px-8 py-4 rounded-full font-bold text-white shadow-brand hover:shadow-brand-lg transition-all hover:-translate-y-1 font-heading"
                 >
@@ -43,6 +45,7 @@
                     Nový seznam
                 </button>
                 <Link
+                    v-if="isStaff"
                     :href="`/projects/${project.id}/edit`"
                     class="inline-flex items-center gap-2 bg-white border-2 border-gray-100 px-6 py-4 rounded-full font-bold text-gray-400 hover:text-gray-600 hover:border-gray-200 transition-all font-heading uppercase tracking-widest text-[10px]"
                 >
@@ -84,7 +87,7 @@
         </div>
 
         <!-- Billing summary -->
-        <div class="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div v-if="isStaff" class="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Vykázáno</p>
                 <p class="mt-2 text-3xl font-black text-gray-900 font-heading">{{ formatMinutes(billing.minutes) }}</p>
@@ -189,7 +192,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import Modal from '../../Components/Modal.vue'
@@ -199,6 +202,9 @@ import ProjectDocuments from '../../Components/ProjectDocuments.vue'
 import ProjectMembers from '../../Components/ProjectMembers.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
 import { formatCurrency, formatMinutes, reportAmount } from '../../utils/billing'
+
+const isCustomer = computed(() => usePage().props.auth.user?.role === 'customer')
+const isStaff = computed(() => ['admin', 'manager'].includes(usePage().props.auth.user?.role))
 
 const props = defineProps({
     project: Object,

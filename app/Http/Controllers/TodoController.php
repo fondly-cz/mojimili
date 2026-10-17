@@ -9,6 +9,7 @@ use App\Models\TodoComment;
 use App\Models\Todolist;
 use App\Models\User;
 use App\Support\ActivityLog;
+use App\Support\TimeVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +52,7 @@ class TodoController extends Controller
         return back()->with('success', 'Úkol byl přidán.');
     }
 
-    public function show(Todo $todo)
+    public function show(Request $request, Todo $todo)
     {
         $todo->load([
             'todolist.project.userRates:id,name',
@@ -71,9 +72,15 @@ class TodoController extends Controller
             'comments.attachments',
         ]);
 
+        TimeVisibility::applyToTodos([$todo], $request->user());
+        TimeVisibility::applyToProject($todo->todolist->project, $request->user());
+
         return inertia('Todos/Show', [
             'todo' => $todo,
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            // Outside administration only the project's own people are listed.
+            'users' => $request->user()->isStaff()
+                ? User::orderBy('name')->get(['id', 'name'])
+                : $todo->todolist->project->members->map->only(['id', 'name'])->values(),
             'labels' => Label::orderBy('name')->get(),
             // Candidates for moving the todo under another one of the same list.
             'listTodos' => $todo->todolist->todos()->get(['id', 'parent_id', 'name']),

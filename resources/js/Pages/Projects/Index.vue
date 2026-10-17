@@ -6,7 +6,7 @@
                 <h1 class="text-4xl font-extrabold text-gray-900 font-heading tracking-tight">Projekty</h1>
                 <p class="text-gray-500 mt-2 font-medium">Sledujte rozpracované zakázky a jejich seznamy úkolů.</p>
             </div>
-            <div>
+            <div v-if="isStaff">
                 <Link
                     href="/projects/create"
                     class="inline-flex items-center gap-2 brand-gradient px-8 py-4 rounded-full font-bold text-white shadow-brand hover:shadow-brand-lg transition-all hover:-translate-y-1 font-heading"
@@ -187,6 +187,7 @@
                         <span class="text-xs font-bold uppercase tracking-widest text-gray-400">Vybráno</span>
                     </div>
                     <button
+                        v-if="isStaff"
                         @click="bulkDelete"
                         class="text-xs font-black uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors flex items-center gap-2"
                     >
@@ -250,8 +251,8 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { computed, reactive, ref } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
@@ -338,4 +339,6 @@ const executeDelete = () => {
         })
     }
 }
+
+const isStaff = computed(() => ['admin', 'manager'].includes(usePage().props.auth.user?.role))
 </script>

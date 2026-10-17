@@ -20,7 +20,7 @@ trait InteractsWithCrmUser
     {
         $user = $request->user();
 
-        if (! $user instanceof User || ! $user->hasAnyRole()) {
+        if (! $user instanceof User || ! $user->isStaff()) {
             return null;
         }
 

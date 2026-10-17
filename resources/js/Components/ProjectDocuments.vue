@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-4 mb-4">
             <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Dokumenty ({{ documents.length }})</h2>
             <button
-                v-if="!editing"
+                v-if="!editing && canEdit"
                 type="button"
                 @click="start(null)"
                 class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-brand-primary-from transition-colors"
@@ -38,7 +38,7 @@
                         <span v-if="document.color" class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: document.color }"></span>
                         {{ document.name }}
                     </button>
-                    <div class="flex shrink-0 items-center gap-3">
+                    <div v-if="canEdit" class="flex shrink-0 items-center gap-3">
                         <button type="button" @click="start(document)" class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-brand-primary-from">Upravit</button>
                         <button type="button" @click="remove(document)" class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-red-500">Smazat</button>
                     </div>
@@ -67,7 +67,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { router, useForm, usePage } from '@inertiajs/vue3'
 import '@toast-ui/editor/dist/toastui-editor.css'
 import AttachmentLightbox from './AttachmentLightbox.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -78,6 +78,9 @@ const props = defineProps({
     projectId: Number,
     documents: Array,
 })
+
+// Only administrators and managers maintain the project's documents.
+const canEdit = ['admin', 'manager'].includes(usePage().props.auth.user?.role)
 
 const openId = ref(null)
 const toggle = (id) => { openId.value = openId.value === id ? null : id }

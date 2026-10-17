@@ -46,6 +46,29 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
         return $this->role === UserRole::ADMIN;
     }
 
+    /**
+     * Administrators and managers run the whole CRM; the other roles work inside the projects they are assigned to.
+     */
+    public function isStaff(): bool
+    {
+        return $this->isAdmin() || $this->isManager();
+    }
+
+    public function isCollaborator(): bool
+    {
+        return $this->role === UserRole::COLLABORATOR;
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === UserRole::CUSTOMER;
+    }
+
+    public function canReportTime(): bool
+    {
+        return $this->hasAnyRole() && ! $this->isCustomer();
+    }
+
     public function isManager(): bool
     {
         return $this->role === UserRole::MANAGER;

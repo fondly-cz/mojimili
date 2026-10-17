@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Todolist;
+use App\Support\TimeVisibility;
 use Illuminate\Http\Request;
 
 class TodolistController extends Controller
@@ -65,9 +66,14 @@ class TodolistController extends Controller
             'todos.workReports.invoice:id,number,url',
         ]);
 
+        $user = $request->user();
+        $reportedMinutes = $user->isStaff() ? (int) $todolist->todos->flatMap->workReports->sum('minutes') : null;
+
+        TimeVisibility::applyToTodos($todolist->todos, $user);
+
         return inertia('Todolists/Show', [
             'todolist' => $todolist,
-            'reportedMinutes' => (int) $todolist->todos->flatMap->workReports->sum('minutes'),
+            'reportedMinutes' => $reportedMinutes,
         ]);
     }
 
