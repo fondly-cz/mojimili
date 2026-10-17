@@ -60,7 +60,9 @@ class UpdateProjectTool extends Tool
             $project->update(collect($validated)->except(['user_rates', 'member_ids'])->all());
 
             if (array_key_exists('member_ids', $validated)) {
-                $project->members()->sync($validated['member_ids']);
+                $project->members()->whereNotIn('users.id', $validated['member_ids'])->get()
+                    ->each(fn ($member) => $project->revokeAccess($member));
+                $project->members()->syncWithoutDetaching($validated['member_ids']);
             }
 
             if (array_key_exists('user_rates', $validated)) {

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -119,8 +120,55 @@ class Project extends Model implements ProjectRestricted
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'project_members')
+            ->withPivot('all_todolists')
             ->withTimestamps()
             ->orderBy('users.name');
+    }
+
+    /**
+     * @return HasMany<ProjectInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(ProjectInvitation::class)->orderBy('email');
+    }
+
+    /**
+     * Assign the person to the project and set which todolists they see. Todolists outside
+     * $within (the ones the caller may hand out) are left as they were.
+     *
+     * @param  array<int, int>  $todolistIds
+     * @param  Collection<int, int>|array<int, int>|null  $within
+     */
+    public function grantAccess(User $user, bool $allTodolists, array $todolistIds = [], Collection|array|null $within = null): void
+    {
+        $this->members()->syncWithoutDetaching([$user->id => ['all_todolists' => $allTodolists]]);
+
+        $grantable = collect($within ?? $this->todolists()->pluck('id'));
+        $chosen = $allTodolists ? [] : array_values(array_intersect($todolistIds, $grantable->all()));
+
+        DB::table('todolist_user')->where('user_id', $user->id)->whereIn('todolist_id', $grantable)->delete();
+
+        $now = now();
+        DB::table('todolist_user')->insert(array_map(fn ($id) => [
+            'todolist_id' => $id,
+            'user_id' => $user->id,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $chosen));
+    }
+
+    /**
+     * Take the person out of the project together with their access to its todolists.
+     */
+    public function revokeAccess(User $user): void
+    {
+        $this->members()->detach($user->id);
+
+        DB::table('todolist_user')
+            ->where('user_id', $user->id)
+            ->whereIn('todolist_id', $this->todolists()->select('todolists.id'))
+            ->delete();
     }
 
     /**

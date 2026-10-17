@@ -107,22 +107,8 @@ class ProjectControllerTest extends TestCase
                 ->component('Projects/Show')
                 ->has('project.todolists', 1)
                 ->has('project.todolists.0.todos', 1)
-                ->has('users')
+                ->has('knownPeople')
                 ->has('calculations')
-            );
-    }
-
-    public function test_it_sends_avatars_of_assignable_users(): void
-    {
-        $project = Project::factory()->create();
-        $manager = $this->manager();
-        $manager->update(['avatar' => 'https://example.com/avatar.png']);
-
-        $this->actingAs($manager)
-            ->get("/projects/{$project->id}")
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('users', fn ($users) => collect($users)->firstWhere('id', $manager->id)['avatar'] === 'https://example.com/avatar.png')
             );
     }
 

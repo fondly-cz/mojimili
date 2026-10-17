@@ -51,7 +51,7 @@ class ProjectAccessTest extends TestCase
     {
         $manager = $this->manager();
         Project::factory()->create(['name' => 'Cizí projekt']);
-        Project::factory()->create(['name' => 'Můj projekt'])->members()->attach($manager);
+        Project::factory()->create(['name' => 'Můj projekt'])->members()->attach($manager, ['all_todolists' => true]);
 
         $this->actingAs($manager)
             ->get('/projects')
@@ -107,7 +107,7 @@ class ProjectAccessTest extends TestCase
     {
         $member = $this->manager();
         $project = Project::factory()->create();
-        $project->members()->attach($member);
+        $project->members()->attach($member, ['all_todolists' => true]);
         $todo = $this->todoIn($project);
 
         $this->actingAs($member)->get("/projects/{$project->id}")->assertOk();
@@ -121,7 +121,7 @@ class ProjectAccessTest extends TestCase
     {
         $member = $this->manager();
         $project = Project::factory()->create();
-        $project->members()->attach($member);
+        $project->members()->attach($member, ['all_todolists' => true]);
 
         $this->actingAs($member)
             ->from("/projects/{$project->id}")
@@ -137,7 +137,7 @@ class ProjectAccessTest extends TestCase
         $colleague = User::factory()->create();
         $outsider = User::factory()->create();
         $project = Project::factory()->create();
-        $project->members()->attach([$member->id, $colleague->id]);
+        $project->members()->attach(array_fill_keys([$member->id, $colleague->id], ['all_todolists' => true]));
         $todo = $this->todoIn($project);
 
         $this->actingAs($member)
@@ -166,7 +166,7 @@ class ProjectAccessTest extends TestCase
     {
         $manager = $this->manager();
         $mine = Project::factory()->create();
-        $mine->members()->attach($manager);
+        $mine->members()->attach($manager, ['all_todolists' => true]);
         $myReport = WorkReport::factory()->create(['todo_id' => $this->todoIn($mine)->id]);
         $hiddenReport = WorkReport::factory()->create(['todo_id' => $this->todoIn(Project::factory()->create())->id]);
 
@@ -228,7 +228,7 @@ class ProjectAccessTest extends TestCase
         $jana = User::factory()->create(['name' => 'Jana Nováková']);
         $petr = User::factory()->create(['name' => 'Petr Starý']);
         $project = Project::factory()->create();
-        $project->members()->attach([$member->id, $petr->id]);
+        $project->members()->attach(array_fill_keys([$member->id, $petr->id], ['all_todolists' => true]));
 
         $response = CrmServer::actingAs($member)->tool(UpdateProjectMembersTool::class, [
             'project_id' => $project->id,

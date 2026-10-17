@@ -64,6 +64,8 @@ class CreateTodolistTool extends Tool
                 'sort_order' => $project->todolists()->max('sort_order') + 1,
             ]);
 
+            $todolist->shareWith($user);
+
             $this->createTodos($todolist, $validated['todos'] ?? [], $user->id);
 
             return $todolist->load('todos');

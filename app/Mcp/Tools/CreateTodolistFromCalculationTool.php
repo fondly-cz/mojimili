@@ -82,10 +82,10 @@ class CreateTodolistFromCalculationTool extends Tool
         ]);
 
         if (! $existing) {
-            $project->members()->syncWithoutDetaching([$user->id]);
+            $project->members()->syncWithoutDetaching([$user->id => ['all_todolists' => true]]);
         }
 
-        $todolist = $createTodolist->handle($calculation, $project, $itemIds, $validated['name'] ?? null);
+        $todolist = $createTodolist->handle($calculation, $project, $itemIds, $validated['name'] ?? null, $user);
 
         $todoLines = $todolist->todos
             ->map(fn (Todo $todo) => sprintf(

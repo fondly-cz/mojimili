@@ -25,6 +25,8 @@ class TodolistController extends Controller
             'sort_order' => $project->todolists()->max('sort_order') + 1,
         ]);
 
+        $todolist->shareWith($request->user());
+
         foreach ($validated['todos'] ?? [] as $index => $todo) {
             $todolist->todos()->create([
                 'name' => $todo['name'],

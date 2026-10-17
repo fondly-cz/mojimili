@@ -56,10 +56,10 @@ class CalculationTodolistController extends Controller
             ]);
 
         if ($project->wasRecentlyCreated) {
-            $project->members()->syncWithoutDetaching([$request->user()->id]);
+            $project->members()->syncWithoutDetaching([$request->user()->id => ['all_todolists' => true]]);
         }
 
-        $createTodolist->handle($calculation, $project, $itemIds, $validated['name'] ?? null);
+        $createTodolist->handle($calculation, $project, $itemIds, $validated['name'] ?? null, $request->user());
 
         return redirect()->route('projects.show', $project)
             ->with('success', 'Seznam úkolů byl vytvořen z kalkulace.');

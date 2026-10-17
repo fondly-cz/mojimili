@@ -35,7 +35,7 @@ class ListProjectsTool extends Tool
         $projects = Project::query()
             ->visibleTo($user)
             ->with('company:id,name')
-            ->withCount('todolists')
+            ->withCount(['todolists' => fn ($lists) => $lists->visibleTo($user)])
             ->when($validated['search'] ?? null, fn ($query, $search) => $query->where(
                 fn ($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
