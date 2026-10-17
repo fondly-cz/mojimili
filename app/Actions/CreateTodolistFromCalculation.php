@@ -6,6 +6,7 @@ use App\Models\Calculation;
 use App\Models\CalculationItem;
 use App\Models\Project;
 use App\Models\Todolist;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -22,15 +23,18 @@ class CreateTodolistFromCalculation
         Project $project,
         ?array $itemIds = null,
         ?string $name = null,
+        ?User $creator = null,
     ): Todolist {
         $items = $this->resolveItems($calculation, $itemIds);
 
-        return DB::transaction(function () use ($calculation, $project, $items, $name) {
+        return DB::transaction(function () use ($calculation, $project, $items, $name, $creator) {
             $todolist = $project->todolists()->create([
                 'name' => $name ?: ($calculation->customer_company ?: $calculation->customer_name),
                 'calculation_id' => $calculation->id,
                 'sort_order' => $project->todolists()->max('sort_order') + 1,
             ]);
+
+            $todolist->shareWith($creator);
 
             $this->createTodos($todolist, $items);
 

@@ -49,7 +49,9 @@ Route::middleware(['auth', 'hasRole', 'projectAccess'])->group(function () {
     Route::resource('projects', ProjectController::class);
 
     Route::post('projects/{project}/members', [ProjectMemberController::class, 'store'])->name('projects.members.store');
+    Route::patch('projects/{project}/members/{user}', [ProjectMemberController::class, 'update'])->name('projects.members.update');
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->name('projects.members.destroy');
+    Route::delete('projects/{project}/invitations/{invitation}', [ProjectMemberController::class, 'destroyInvitation'])->name('projects.invitations.destroy');
 
     Route::post('projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('projects.documents.store');
     Route::patch('project-documents/{document}', [ProjectDocumentController::class, 'update'])->name('project-documents.update');

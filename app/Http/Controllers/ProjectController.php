@@ -17,7 +17,7 @@ class ProjectController extends Controller
 
         $projects = Project::with('company')
             ->visibleTo($request->user())
-            ->withCount('todolists')
+            ->withCount(['todolists' => fn ($lists) => $lists->visibleTo($request->user())])
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -55,18 +55,22 @@ class ProjectController extends Controller
             'status' => $validated['status'] ?? 'active',
         ]);
 
-        $project->members()->syncWithoutDetaching([auth()->id()]);
+        $project->members()->syncWithoutDetaching([auth()->id() => ['all_todolists' => true]]);
 
         return redirect()->route('projects.show', $project)
             ->with('success', 'Projekt byl vytvořen.');
     }
 
-    public function show(Project $project)
+    public function show(Request $request, Project $project)
     {
+        $user = $request->user();
+
         $project->load([
             'company',
             'companyEmployee',
             'user',
+            // A person may see only some of the lists.
+            'todolists' => fn ($lists) => $lists->visibleTo($user),
             'todolists.calculation:id,customer_name,customer_company',
             // The list shows only a summary; the thread lives on the todo's detail page.
             'todolists.todos' => fn ($query) => $query->withCount('comments'),
@@ -75,13 +79,32 @@ class ProjectController extends Controller
             'todolists.todos.workReports.user:id,name',
             'todolists.todos.workReports.invoice:id,number,url',
             'userRates:id,name',
-            'members:id,name,avatar',
+            'members:id,name,email,avatar',
+            'invitations',
             'documents.user:id,name',
         ]);
 
+        // Which lists each member sees; only the lists the viewer sees are offered and reported.
+        $access = DB::table('todolist_user')
+            ->whereIn('todolist_id', $project->todolists->pluck('id'))
+            ->get()
+            ->groupBy('user_id');
+
+        $project->members->each(function (User $member) use ($access) {
+            $member->setAttribute('all_todolists', (bool) $member->pivot->all_todolists);
+            $member->setAttribute('todolist_ids', ($access[$member->id] ?? collect())->pluck('todolist_id')->values());
+        });
+
         return inertia('Projects/Show', [
             'project' => $project,
-            'users' => User::orderBy('name')->get(['id', 'name', 'avatar']),
+            // People the viewer has already worked with in other projects, to pick from when adding someone.
+            'knownPeople' => User::query()
+                ->whereIn('id', DB::table('project_members')
+                    ->select('user_id')
+                    ->whereIn('project_id', Project::visibleTo($user)->select('projects.id')))
+                ->whereNotIn('id', $project->members->pluck('id'))
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'avatar']),
             // Calculations that can still be turned into a todolist for this project.
             'calculations' => Calculation::query()
                 ->when($project->company_id, fn ($q) => $q->where('company_id', $project->company_id))

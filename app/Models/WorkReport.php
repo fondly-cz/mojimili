@@ -149,13 +149,13 @@ class WorkReport extends Model implements ProjectRestricted
     }
 
     /**
-     * Reports of the projects the user is assigned to.
+     * Reports of the todolists the user can see.
      *
      * @param  Builder<WorkReport>  $query
      */
     public function scopeVisibleTo(Builder $query, User $user): void
     {
-        $query->whereHas('todo.todolist.project', fn ($project) => $project->visibleTo($user));
+        $query->whereHas('todo.todolist', fn ($todolist) => $todolist->visibleTo($user));
     }
 
     /**

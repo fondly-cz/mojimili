@@ -35,6 +35,12 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
         'avatar',
     ];
 
+    protected static function booted(): void
+    {
+        // Someone invited to projects by e-mail joins them as soon as the account exists.
+        static::created(fn (User $user) => ProjectInvitation::acceptFor($user));
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::ADMIN;

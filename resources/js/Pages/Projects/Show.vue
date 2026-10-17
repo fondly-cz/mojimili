@@ -55,7 +55,13 @@
             {{ project.description }}
         </p>
 
-        <ProjectMembers :project-id="project.id" :members="project.members" :users="users" />
+        <ProjectMembers
+            :project-id="project.id"
+            :members="project.members"
+            :known-people="knownPeople"
+            :invitations="project.invitations"
+            :todolists="project.todolists"
+        />
 
         <ProjectDocuments :project-id="project.id" :documents="project.documents" />
 
@@ -306,7 +312,7 @@ import { formatCurrency, formatMinutes, reportAmount } from '../../utils/billing
 
 const props = defineProps({
     project: Object,
-    users: Array,
+    knownPeople: Array,
     calculations: Array,
 })
 

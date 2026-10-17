@@ -26,7 +26,7 @@ abstract class TestCase extends BaseTestCase
 
         $assign = fn (iterable $projectIds, iterable $userIds) => DB::table('project_members')->insertOrIgnore(
             collect($projectIds)->crossJoin($userIds)
-                ->map(fn ($pair) => ['project_id' => $pair[0], 'user_id' => $pair[1]])
+                ->map(fn ($pair) => ['project_id' => $pair[0], 'user_id' => $pair[1], 'all_todolists' => true])
                 ->all()
         );
 
