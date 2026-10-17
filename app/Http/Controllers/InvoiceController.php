@@ -68,10 +68,8 @@ class InvoiceController extends Controller
         $invoice->load([
             'user:id,name',
             'workReports.user:id,name',
-            'workReports.todo:id,todolist_id,name',
-            'workReports.todo.todolist:id,project_id,name',
-            'workReports.todo.todolist.project:id,name,company_id',
-            'workReports.todo.todolist.project.company:id,name',
+            'workReports.project:id,name,company_id',
+            'workReports.project.company:id,name',
         ]);
 
         return inertia('Invoices/Show', [

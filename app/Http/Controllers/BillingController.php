@@ -20,16 +20,12 @@ class BillingController extends Controller
             ->visibleTo($request->user())
             ->with([
                 'user:id,name',
-                'todo:id,todolist_id,name',
-                'todo.todolist:id,project_id,name',
-                'todo.todolist.project:id,name,company_id',
-                'todo.todolist.project.company:id,name',
+                'project:id,name,company_id',
+                'project.company:id,name',
             ])
-            ->when($request->input('project_id'), fn ($q, $projectId) => $q->whereHas(
-                'todo.todolist', fn ($l) => $l->where('project_id', $projectId)
-            ))
+            ->when($request->input('project_id'), fn ($q, $projectId) => $q->where('project_id', $projectId))
             ->when($request->input('company_id'), fn ($q, $companyId) => $q->whereHas(
-                'todo.todolist.project', fn ($p) => $p->where('company_id', $companyId)
+                'project', fn ($p) => $p->where('company_id', $companyId)
             ))
             ->when($request->input('user_id'), fn ($q, $userId) => $q->where('user_id', $userId))
             ->when($request->input('date_from'), fn ($q, $from) => $q->whereDate('date', '>=', $from))

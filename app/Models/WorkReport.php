@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 class WorkReport extends Model implements ProjectRestricted
 {
@@ -36,6 +37,14 @@ class WorkReport extends Model implements ProjectRestricted
         // A from–to range is the source of truth: date and minutes follow it. Changing only
         // the date moves the range to that day, changing only minutes moves its end.
         static::saving(function (WorkReport $report) {
+            // The report remembers where it was made, so it survives the deletion of its todo.
+            if ($report->todo_id && $report->project_id === null) {
+                $report->loadMissing('todo.todolist');
+                $report->project_id = $report->todo?->todolist?->project_id;
+                $report->todo_name = $report->todo?->name;
+                $report->todolist_name = $report->todo?->todolist?->name;
+            }
+
             if (! $report->started_at || ! $report->ended_at) {
                 return;
             }
@@ -112,6 +121,14 @@ class WorkReport extends Model implements ProjectRestricted
     }
 
     /**
+     * @return BelongsTo<Project, $this>
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
@@ -155,7 +172,10 @@ class WorkReport extends Model implements ProjectRestricted
      */
     public function scopeVisibleTo(Builder $query, User $user): void
     {
-        $query->whereHas('todo.todolist', fn ($todolist) => $todolist->visibleTo($user));
+        $query->where(fn (Builder $reports) => $reports
+            ->whereHas('todo.todolist', fn ($todolist) => $todolist->visibleTo($user))
+            // Time kept from a deleted list belongs to no list, so only people who see the whole project get it.
+            ->orWhere(fn (Builder $orphans) => $orphans->whereNull('todo_id')->whereIn('project_id', self::projectsSeenInFull($user))));
     }
 
     /**
@@ -172,8 +192,20 @@ class WorkReport extends Model implements ProjectRestricted
             ->all();
     }
 
+    /**
+     * @return \Illuminate\Database\Query\Builder
+     */
+    private static function projectsSeenInFull(User $user)
+    {
+        if ($user->isAdmin()) {
+            return DB::table('projects')->select('id');
+        }
+
+        return DB::table('project_members')->select('project_id')->where('user_id', $user->id)->where('all_todolists', true);
+    }
+
     public function isVisibleTo(?User $user): bool
     {
-        return (bool) $this->todo?->isVisibleTo($user);
+        return $user !== null && self::visibleTo($user)->whereKey($this->id)->exists();
     }
 }

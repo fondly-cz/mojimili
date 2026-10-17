@@ -19,10 +19,8 @@ trait DescribesWorkReports
         return array_map(fn (string $relation) => $prefix.$relation, [
             'user:id,name',
             'invoice:id,number',
-            'todo:id,todolist_id,name',
-            'todo.todolist:id,project_id,name',
-            'todo.todolist.project:id,name,company_id',
-            'todo.todolist.project.company:id,name',
+            'project:id,name,company_id',
+            'project.company:id,name',
         ]);
     }
 
@@ -31,7 +29,7 @@ trait DescribesWorkReports
      */
     protected function describeWorkReport(WorkReport $report): array
     {
-        $project = $report->todo?->todolist?->project;
+        $project = $report->project;
 
         return [
             'id' => $report->id,
@@ -45,7 +43,7 @@ trait DescribesWorkReports
             'amount' => $report->amount,
             'description' => $report->description,
             'todo_id' => $report->todo_id,
-            'todo_name' => $report->todo?->name,
+            'todo_name' => $report->todo_name,
             'project_id' => $project?->id,
             'project_name' => $project?->name,
             'company_id' => $project?->company_id,

@@ -37,11 +37,9 @@ class ListUninvoicedWorkReportsTool extends Tool
         $reports = WorkReport::uninvoiced()
             ->visibleTo($user)
             ->with($this->workReportRelations())
-            ->when($validated['project_id'] ?? null, fn ($q, $projectId) => $q->whereHas(
-                'todo.todolist', fn ($l) => $l->where('project_id', $projectId)
-            ))
+            ->when($validated['project_id'] ?? null, fn ($q, $projectId) => $q->where('project_id', $projectId))
             ->when($validated['company_id'] ?? null, fn ($q, $companyId) => $q->whereHas(
-                'todo.todolist.project', fn ($p) => $p->where('company_id', $companyId)
+                'project', fn ($p) => $p->where('company_id', $companyId)
             ))
             ->when($validated['user_id'] ?? null, fn ($q, $userId) => $q->where('user_id', $userId))
             ->when($validated['date_from'] ?? null, fn ($q, $from) => $q->whereDate('date', '>=', $from))
