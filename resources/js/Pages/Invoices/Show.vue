@@ -102,9 +102,9 @@
                         <tbody class="divide-y divide-gray-50">
                             <tr v-for="report in group.reports" :key="report.id" class="font-semibold text-gray-600 group">
                                 <td class="px-10 py-4">
-                                    <div class="font-bold text-gray-900">{{ report.todo.name }}</div>
+                                    <div class="font-bold text-gray-900">{{ report.todo_name }}</div>
                                     <div class="text-xs text-gray-400">
-                                        {{ report.todo.todolist.name }}<span v-if="report.description"> · {{ report.description }}</span>
+                                        {{ report.todolist_name }}<span v-if="report.description"> · {{ report.description }}</span>
                                     </div>
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
@@ -187,7 +187,7 @@ const groups = computed(() => {
     const map = new Map()
 
     for (const report of props.invoice.work_reports) {
-        const project = report.todo.todolist.project
+        const project = report.project
         if (!map.has(project.id)) {
             map.set(project.id, { project, reports: [] })
         }

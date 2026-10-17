@@ -52,9 +52,51 @@ class TodolistController extends Controller
         return back()->with('success', 'Seznam úkolů byl upraven.');
     }
 
-    public function destroy(Todolist $todolist)
+    public function show(Request $request, Todolist $todolist)
     {
-        $todolist->delete();
+        $todolist->load([
+            'project:id,name,status,company_id',
+            'project.members:id,name,avatar',
+            'calculation:id,customer_name,customer_company',
+            'todos' => fn ($query) => $query->withCount('comments'),
+            'todos.assignee:id,name',
+            'todos.labels',
+            'todos.workReports.user:id,name',
+            'todos.workReports.invoice:id,number,url',
+        ]);
+
+        return inertia('Todolists/Show', [
+            'todolist' => $todolist,
+            'reportedMinutes' => (int) $todolist->todos->flatMap->workReports->sum('minutes'),
+        ]);
+    }
+
+    public function archive(Todolist $todolist)
+    {
+        $todolist->update(['archived_at' => now()]);
+
+        return back()->with('success', 'Seznam úkolů byl archivován.');
+    }
+
+    public function unarchive(Todolist $todolist)
+    {
+        $todolist->update(['archived_at' => null]);
+
+        return back()->with('success', 'Seznam úkolů byl obnoven z archivu.');
+    }
+
+    public function destroy(Request $request, Todolist $todolist)
+    {
+        $validated = $request->validate(['delete_work_reports' => 'sometimes|boolean']);
+        $project = $todolist->project;
+        $referer = $request->headers->get('referer');
+
+        $todolist->deleteWithReports((bool) ($validated['delete_work_reports'] ?? false));
+
+        // From the list's own page there is nothing left to go back to.
+        if ($referer && str_contains($referer, "/todolists/{$todolist->id}")) {
+            return redirect()->route('projects.show', $project)->with('success', 'Seznam úkolů byl smazán.');
+        }
 
         return back()->with('success', 'Seznam úkolů byl smazán.');
     }

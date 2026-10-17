@@ -62,6 +62,9 @@ Route::middleware(['auth', 'hasRole', 'projectAccess'])->group(function () {
     Route::delete('labels/{label}', [LabelController::class, 'destroy'])->name('labels.destroy');
 
     Route::post('projects/{project}/todolists', [TodolistController::class, 'store'])->name('projects.todolists.store');
+    Route::get('todolists/{todolist}', [TodolistController::class, 'show'])->name('todolists.show');
+    Route::post('todolists/{todolist}/archive', [TodolistController::class, 'archive'])->name('todolists.archive');
+    Route::delete('todolists/{todolist}/archive', [TodolistController::class, 'unarchive'])->name('todolists.unarchive');
     Route::patch('todolists/{todolist}', [TodolistController::class, 'update'])->name('todolists.update');
     Route::delete('todolists/{todolist}', [TodolistController::class, 'destroy'])->name('todolists.destroy');
     Route::post('todolists/{todolist}/reorder', [TodolistController::class, 'reorder'])->name('todolists.reorder');

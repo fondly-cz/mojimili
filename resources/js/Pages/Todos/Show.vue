@@ -5,7 +5,7 @@
                 { label: 'Nástěnka', href: '/' },
                 { label: 'Projekty', href: '/projects' },
                 { label: project.name, href: `/projects/${project.id}` },
-                { label: todo.todolist.name },
+                { label: todo.todolist.name, href: `/todolists/${todo.todolist.id}` },
             ]"
         />
 

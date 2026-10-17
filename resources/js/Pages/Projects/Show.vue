@@ -69,7 +69,7 @@
         <div class="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Seznamy</p>
-                <p class="mt-2 text-3xl font-black text-gray-900 font-heading">{{ project.todolists.length }}</p>
+                <p class="mt-2 text-3xl font-black text-gray-900 font-heading">{{ activeLists.length }}</p>
             </div>
             <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Hotové úkoly</p>
@@ -123,77 +123,27 @@
         </div>
 
         <div v-else class="space-y-8">
-            <div
-                v-for="list in project.todolists"
+            <TodolistPanel
+                v-for="list in activeLists"
                 :key="list.id"
-                class="bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden"
-            >
-                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-50 px-10 py-6">
-                    <div>
-                        <h3 class="text-lg font-black text-gray-900 font-heading">{{ list.name }}</h3>
-                        <p class="mt-1 text-xs font-semibold text-gray-400">
-                            {{ list.todos.filter(t => t.is_done).length }} z {{ list.todos.length }} hotovo
-                            <span v-if="list.calculation">
-                                · z kalkulace
-                                <Link :href="`/calculations/${list.calculation.id}`" class="font-bold hover:text-brand-primary-from transition-colors">
-                                    {{ list.calculation.customer_company || list.calculation.customer_name }}
-                                </Link>
-                            </span>
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button
-                            @click="openNewTodo(list)"
-                            class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-brand-primary-from transition-colors"
-                        >
-                            + Úkol
-                        </button>
-                        <button
-                            @click="deleteList(list)"
-                            class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-red-500 transition-colors"
-                        >
-                            Smazat seznam
-                        </button>
-                    </div>
-                </div>
+                :list="list"
+                :assignable-users="assignableUsers"
+            />
 
-                <div class="p-10">
-                    <button
-                        @click="openNewTodo(list)"
-                        class="mb-4 inline-flex items-center gap-2 rounded-full border-2 border-gray-100 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-brand-primary-from hover:text-brand-primary-from transition-all font-heading"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Přidat úkol
-                    </button>
-
-                    <p v-if="list.todos.length === 0" class="text-sm font-bold text-gray-300 text-center py-6">
-                        Zatím žádné úkoly.
-                    </p>
-                    <div v-else class="space-y-3">
-                        <TodoNode
-                            v-for="todo in visibleTodos(list)"
-                            :key="todo.id"
-                            :todo="todo"
-                            :all-todos="list.todos"
-                            :users="assignableUsers"
-                            @toggle="toggleTodo"
-                            @assign="assignTodo"
-                            @due-date="setDueDate"
-                            @add-child="openNewTodo(list, $event)"
-                            @remove="deleteTodo"
-                        />
-                        <button
-                            v-if="doneTodos(list).length > DONE_PREVIEW"
-                            @click="toggleDone(list)"
-                            class="pt-2 text-xs font-bold text-gray-400 hover:text-brand-primary-from transition-colors"
-                        >
-                            {{ expandedDone.has(list.id)
-                                ? 'Skrýt dokončené úkoly'
-                                : `+${doneTodos(list).length - DONE_PREVIEW} ${doneLabel(doneTodos(list).length - DONE_PREVIEW)}` }}
-                        </button>
-                    </div>
+            <div v-if="archivedLists.length">
+                <button
+                    @click="showArchived = !showArchived"
+                    class="text-xs font-bold text-gray-400 hover:text-brand-primary-from transition-colors"
+                >
+                    {{ showArchived ? 'Skrýt archivované seznamy' : `Archivované seznamy (${archivedLists.length})` }}
+                </button>
+                <div v-if="showArchived" class="mt-4 space-y-8">
+                    <TodolistPanel
+                        v-for="list in archivedLists"
+                        :key="list.id"
+                        :list="list"
+                        :assignable-users="assignableUsers"
+                    />
                 </div>
             </div>
         </div>
@@ -225,61 +175,6 @@
             </template>
         </Modal>
 
-        <!-- New todo modal -->
-        <Modal
-            :show="newTodo.show"
-            :title="newTodo.parent ? 'Nový podúkol' : 'Nový úkol'"
-            @close="newTodo.show = false"
-        >
-            <template #content>
-                <p v-if="newTodo.parent" class="mb-6 text-xs font-bold text-gray-400">pod „{{ newTodo.parent.name }}“</p>
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Název <span class="text-red-500">*</span></label>
-                        <input
-                            v-model="todoForm.name"
-                            type="text"
-                            class="block w-full px-5 py-3.5 bg-gray-50 border-gray-50 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-brand-primary-from focus:border-brand-primary-from transition-all"
-                            placeholder="Co je potřeba udělat?"
-                            @keyup.enter="submitTodo"
-                        >
-                        <p v-if="todoForm.errors.name" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ todoForm.errors.name }}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Odhad (dny)</label>
-                            <input
-                                v-model.number="todoForm.days"
-                                type="number"
-                                min="0"
-                                class="block w-full px-5 py-3.5 bg-gray-50 border-gray-50 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-brand-primary-from focus:border-brand-primary-from transition-all"
-                            >
-                        </div>
-                        <div>
-                            <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Termín</label>
-                            <input
-                                v-model="todoForm.due_date"
-                                type="date"
-                                class="block w-full px-5 py-3.5 bg-gray-50 border-gray-50 rounded-2xl text-sm font-semibold text-gray-700 focus:bg-white focus:ring-brand-primary-from focus:border-brand-primary-from transition-all"
-                            >
-                        </div>
-                    </div>
-                </div>
-            </template>
-            <template #footer>
-                <button
-                    @click="submitTodo"
-                    :disabled="todoForm.processing"
-                    class="brand-gradient px-8 py-3 rounded-full font-bold text-white shadow-brand transition-all font-heading disabled:opacity-50"
-                >
-                    Přidat
-                </button>
-                <button @click="newTodo.show = false" class="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors">
-                    Zrušit
-                </button>
-            </template>
-        </Modal>
-
         <CreateTodolistFromCalculationModal
             :show="fromCalculation.show"
             :calculations="calculations"
@@ -287,24 +182,16 @@
             @close="fromCalculation.show = false"
         />
 
-        <ConfirmModal
-            :show="confirm.show"
-            :title="confirm.title"
-            :message="confirm.message"
-            @close="confirm.show = false"
-            @confirm="executeConfirm"
-        />
     </Layout>
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
-import { Link, router, useForm } from '@inertiajs/vue3'
+import { computed, reactive, ref } from 'vue'
+import { Link, useForm } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import Modal from '../../Components/Modal.vue'
-import ConfirmModal from '../../Components/ConfirmModal.vue'
-import TodoNode from '../../Components/TodoNode.vue'
+import TodolistPanel from '../../Components/TodolistPanel.vue'
 import ProjectDocuments from '../../Components/ProjectDocuments.vue'
 import ProjectMembers from '../../Components/ProjectMembers.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
@@ -341,6 +228,7 @@ const assignableUsers = computed(() => {
 })
 
 const allTodos = computed(() => props.project.todolists.flatMap(l => l.todos))
+
 const totalCount = computed(() => allTodos.value.length)
 const doneCount = computed(() => allTodos.value.filter(t => t.is_done).length)
 const totalDays = computed(() => allTodos.value.reduce((sum, t) => sum + (t.days || 0), 0))
@@ -362,34 +250,9 @@ const overBudget = computed(() =>
     || (props.project.budget_minutes && billing.value.minutes > props.project.budget_minutes)
 )
 
-const rootTodos = (list) => list.todos.filter(t => t.parent_id === null)
-
-// Done todos sink to the bottom, newest first, and only the first few show until expanded.
-const DONE_PREVIEW = 2
-const expandedDone = reactive(new Set())
-
-const doneTodos = (list) => rootTodos(list)
-    .filter(t => t.is_done)
-    .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
-
-const visibleTodos = (list) => {
-    const done = doneTodos(list)
-
-    return [
-        ...rootTodos(list).filter(t => !t.is_done),
-        ...(expandedDone.has(list.id) ? done : done.slice(0, DONE_PREVIEW)),
-    ]
-}
-
-const toggleDone = (list) => {
-    expandedDone.has(list.id) ? expandedDone.delete(list.id) : expandedDone.add(list.id)
-}
-
-const doneLabel = (count) => {
-    if (count === 1) return 'dokončený úkol'
-    if (count >= 2 && count <= 4) return 'dokončené úkoly'
-    return 'dokončených úkolů'
-}
+const activeLists = computed(() => props.project.todolists.filter(l => !l.archived_at))
+const archivedLists = computed(() => props.project.todolists.filter(l => l.archived_at))
+const showArchived = ref(false)
 
 // --- Todolist creation ---
 const newList = reactive({ show: false })
@@ -405,75 +268,10 @@ const submitList = () => {
     })
 }
 
-// --- Todo creation ---
-const newTodo = reactive({ show: false, list: null, parent: null })
-const todoForm = useForm({ name: '', days: 0, due_date: '', parent_id: null })
-
-const openNewTodo = (list, parent = null) => {
-    newTodo.list = list
-    newTodo.parent = parent
-    todoForm.reset()
-    todoForm.parent_id = parent?.id ?? null
-    newTodo.show = true
-}
-
-const submitTodo = () => {
-    todoForm.post(`/todolists/${newTodo.list.id}/todos`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            todoForm.reset()
-            newTodo.show = false
-        },
-    })
-}
-
-// --- Todo mutations ---
-const toggleTodo = (todo) => {
-    router.patch(`/todos/${todo.id}`, { is_done: !todo.is_done }, { preserveScroll: true })
-}
-
-const assignTodo = ({ todo, userId }) => {
-    router.patch(`/todos/${todo.id}`, { assigned_user_id: userId }, { preserveScroll: true })
-}
-
-const setDueDate = ({ todo, dueDate }) => {
-    router.patch(`/todos/${todo.id}`, { due_date: dueDate }, { preserveScroll: true })
-}
-
 // --- From calculation ---
 const fromCalculation = reactive({ show: false })
 
 const openFromCalculation = () => {
     fromCalculation.show = true
-}
-
-// --- Deletion ---
-const confirm = reactive({ show: false, title: '', message: '', type: null, item: null })
-
-const deleteList = (list) => {
-    confirm.title = 'Smazat seznam úkolů'
-    confirm.message = `Opravdu chcete smazat seznam "${list.name}" včetně všech jeho úkolů?`
-    confirm.type = 'list'
-    confirm.item = list
-    confirm.show = true
-}
-
-const deleteTodo = (todo) => {
-    confirm.title = 'Smazat úkol'
-    confirm.message = `Opravdu chcete smazat úkol "${todo.name}"? Případné podúkoly zůstanou v seznamu.`
-    confirm.type = 'todo'
-    confirm.item = todo
-    confirm.show = true
-}
-
-const executeConfirm = () => {
-    const url = confirm.type === 'list'
-        ? `/todolists/${confirm.item.id}`
-        : `/todos/${confirm.item.id}`
-
-    router.delete(url, {
-        preserveScroll: true,
-        onSuccess: () => confirm.show = false,
-    })
 }
 </script>

@@ -18,6 +18,8 @@ class Todolist extends Model implements ProjectRestricted
 
     protected $guarded = [];
 
+    protected $casts = ['archived_at' => 'datetime'];
+
     protected static function booted(): void
     {
         // Todos cascade in the database, so their thread attachments are removed here.
@@ -68,6 +70,40 @@ class Todolist extends Model implements ProjectRestricted
             ->where(fn (Builder $lists) => $lists
                 ->whereIn('todolists.project_id', (clone $membership)->where('all_todolists', true))
                 ->orWhereIn('todolists.id', DB::table('todolist_user')->select('todolist_id')->where('user_id', $user->id)));
+    }
+
+    /**
+     * @param  Builder<Todolist>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereNull('todolists.archived_at');
+    }
+
+    /**
+     * Delete the list with its todos. Reported time goes with them only when asked; time
+     * already on an invoice always stays, and kept time lives on without its todo.
+     */
+    public function deleteWithReports(bool $deleteReports): void
+    {
+        DB::transaction(function () use ($deleteReports) {
+            $todoIds = $this->todos()->pluck('todos.id');
+
+            if ($deleteReports) {
+                WorkReport::whereIn('todo_id', $todoIds)->whereNull('invoice_id')->delete();
+            }
+
+            // Snapshot names were taken when the time was reported; refresh them before the todos disappear.
+            foreach ($this->todos()->get(['id', 'name']) as $todo) {
+                WorkReport::where('todo_id', $todo->id)->update([
+                    'todo_name' => $todo->name,
+                    'todolist_name' => $this->name,
+                    'todo_id' => null,
+                ]);
+            }
+
+            $this->delete();
+        });
     }
 
     public function isVisibleTo(?User $user): bool

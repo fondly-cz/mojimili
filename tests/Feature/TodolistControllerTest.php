@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\Calculation;
 use App\Models\CalculationItem;
+use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Todo;
 use App\Models\Todolist;
 use App\Models\User;
+use App\Models\WorkReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -209,5 +211,79 @@ class TodolistControllerTest extends TestCase
             ->assertSessionHasErrors('item_ids');
 
         $this->assertSame(0, Todolist::count());
+    }
+
+    public function test_the_detail_shows_one_list_with_its_todos(): void
+    {
+        $project = Project::factory()->create();
+        $list = Todolist::factory()->forProject($project)->create();
+        Todolist::factory()->forProject($project)->create();
+        Todo::factory()->forTodolist($list)->create();
+
+        $this->withoutVite()->actingAs($this->manager())
+            ->get("/todolists/{$list->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Todolists/Show')
+                ->where('todolist.id', $list->id)
+                ->has('todolist.todos', 1));
+    }
+
+    public function test_a_list_can_be_archived_and_restored(): void
+    {
+        $list = Todolist::factory()->create();
+        $manager = $this->manager();
+
+        $this->actingAs($manager)->post("/todolists/{$list->id}/archive")->assertRedirect();
+        $this->assertNotNull($list->fresh()->archived_at);
+
+        $this->actingAs($manager)->delete("/todolists/{$list->id}/archive")->assertRedirect();
+        $this->assertNull($list->fresh()->archived_at);
+    }
+
+    public function test_deleting_a_list_keeps_the_reported_time_by_default(): void
+    {
+        $project = Project::factory()->create();
+        $list = Todolist::factory()->forProject($project)->create(['name' => 'Etapa']);
+        $todo = Todo::factory()->forTodolist($list)->create(['name' => 'Úkol']);
+        $report = WorkReport::factory()->forTodo($todo)->create();
+
+        $this->actingAs($this->manager())->delete("/todolists/{$list->id}")->assertRedirect();
+
+        $this->assertModelMissing($list);
+        $report->refresh();
+        $this->assertNull($report->todo_id);
+        $this->assertSame($project->id, $report->project_id);
+        $this->assertSame('Úkol', $report->todo_name);
+        $this->assertSame('Etapa', $report->todolist_name);
+    }
+
+    public function test_deleting_a_list_can_delete_the_reported_time_but_never_invoiced_time(): void
+    {
+        $list = Todolist::factory()->create();
+        $todo = Todo::factory()->forTodolist($list)->create();
+        $open = WorkReport::factory()->forTodo($todo)->create();
+        $invoiced = WorkReport::factory()->forTodo($todo)->invoicedIn(Invoice::factory()->create())->create();
+
+        $this->actingAs($this->manager())
+            ->delete("/todolists/{$list->id}", ['delete_work_reports' => true])
+            ->assertRedirect();
+
+        $this->assertModelMissing($open);
+        $this->assertModelExists($invoiced);
+        $this->assertNull($invoiced->fresh()->todo_id);
+    }
+
+    public function test_kept_time_is_visible_only_to_people_who_see_the_whole_project(): void
+    {
+        $project = Project::factory()->create();
+        $report = WorkReport::factory()->create(['project_id' => $project->id, 'todo_id' => null]);
+        $full = $this->manager();
+        $limited = $this->manager();
+        $project->grantAccess($full, true);
+        $project->grantAccess($limited, false);
+
+        $this->assertTrue($report->isVisibleTo($full));
+        $this->assertFalse($report->isVisibleTo($limited));
     }
 }
