@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Api\CalculationItemsController;
 use App\Http\Controllers\Api\CompanyEmployeeSearchController;
 use App\Http\Controllers\Api\CompanySearchController;
@@ -83,6 +84,9 @@ Route::middleware(['auth', 'hasRole', 'projectAccess'])->group(function () {
     Route::patch('todo-comments/{comment}', [TodoCommentController::class, 'update'])->name('todo-comments.update');
     Route::delete('todo-comments/{comment}', [TodoCommentController::class, 'destroy'])->name('todo-comments.destroy');
     Route::get('todo-comment-attachments/{attachment}', [TodoCommentController::class, 'attachment'])->name('todo-comment-attachments.show');
+
+    Route::get('projects/{project}/activity', [ActivityController::class, 'project'])->name('projects.activity');
+    Route::get('todos/{todo}/activity', [ActivityController::class, 'todo'])->name('todos.activity');
 
     Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
     Route::resource('invoices', InvoiceController::class)->only(['index', 'store', 'show', 'update', 'destroy']);

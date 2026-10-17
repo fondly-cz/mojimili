@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\PassportKey;
+use App\Support\ActivityLog;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
@@ -25,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        ActivityLog::register();
 
         Passport::authorizationView('mcp.authorize');
 

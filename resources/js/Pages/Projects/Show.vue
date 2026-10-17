@@ -63,6 +63,8 @@
             :todolists="project.todolists"
         />
 
+        <ActivityFeed :url="`/projects/${project.id}/activity`" title="Historie projektu" />
+
         <ProjectDocuments :project-id="project.id" :documents="project.documents" />
 
         <!-- Progress summary -->
@@ -192,6 +194,7 @@ import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import Modal from '../../Components/Modal.vue'
 import TodolistPanel from '../../Components/TodolistPanel.vue'
+import ActivityFeed from '../../Components/ActivityFeed.vue'
 import ProjectDocuments from '../../Components/ProjectDocuments.vue'
 import ProjectMembers from '../../Components/ProjectMembers.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'

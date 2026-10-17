@@ -67,6 +67,8 @@
                     <h2 :class="headingClass" class="mb-4">Diskuse ({{ postCount }})</h2>
                     <TodoComments :todo="todo" :mention-users="project.members" @open-attachment="openAttachment" />
                 </section>
+
+                <ActivityFeed :url="`/todos/${todo.id}/activity`" title="Historie úkolu" />
             </div>
 
             <div class="space-y-8">
@@ -195,6 +197,7 @@ import TodoComments from '../../Components/TodoComments.vue'
 import TodoLabels from '../../Components/TodoLabels.vue'
 import TodoRecurrence from '../../Components/TodoRecurrence.vue'
 import TodoSubtasks from '../../Components/TodoSubtasks.vue'
+import ActivityFeed from '../../Components/ActivityFeed.vue'
 import TodoWorkReports from '../../Components/TodoWorkReports.vue'
 import { inlineImages } from '../../utils/files'
 
