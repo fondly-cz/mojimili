@@ -15,7 +15,7 @@ class RestrictRoleAccess
      * @var list<string>
      */
     private const CUSTOMER_ROUTES = [
-        'dashboard', 'projects.index', 'projects.show', 'todolists.show', 'todos.show', 'todos.activity',
+        'dashboard', 'projects.index', 'projects.show', 'todolists.show', 'todolists.todos.store', 'todos.show', 'todos.activity',
         'todo-attachments.show', 'todo-comment-attachments.show',
         'todos.comments.store', 'todo-comments.update', 'todo-comments.destroy',
         'profile.*', 'logout',

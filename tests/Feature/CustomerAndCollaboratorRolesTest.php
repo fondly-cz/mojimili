@@ -48,6 +48,23 @@ class CustomerAndCollaboratorRolesTest extends TestCase
         $this->assertSame(0, WorkReport::count());
     }
 
+    public function test_a_customer_can_create_a_todo_with_only_a_name_description_and_deadline(): void
+    {
+        $customer = $this->as(UserRole::CUSTOMER);
+        $todolist = Todolist::factory()->create();
+
+        $this->actingAs($customer)->post("/todolists/{$todolist->id}/todos", [
+            'name' => 'Nový banner',
+            'days' => 9,
+            'due_date' => '2026-12-01',
+        ])->assertSessionHasNoErrors();
+
+        $todo = $todolist->todos()->first();
+        $this->assertSame('Nový banner', $todo->name);
+        $this->assertSame($customer->id, $todo->created_by_user_id);
+        $this->assertSame(0, $todo->days);
+    }
+
     public function test_a_customer_reads_projects_but_not_the_rest_of_the_crm(): void
     {
         $customer = $this->as(UserRole::CUSTOMER);
