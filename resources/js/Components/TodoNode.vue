@@ -22,8 +22,7 @@
             <input
                 type="checkbox"
                 :checked="todo.is_done"
-                :disabled="isCustomer"
-                @change="$emit('toggle', todo)"
+                @click.prevent="$emit('toggle', todo)"
                 class="mt-1 h-5 w-5 shrink-0 rounded-lg border-gray-300 text-brand-primary-from focus:ring-brand-primary-from cursor-pointer"
             >
 

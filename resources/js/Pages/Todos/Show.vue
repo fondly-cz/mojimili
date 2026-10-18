@@ -14,8 +14,7 @@
                 <input
                     type="checkbox"
                     :checked="todo.is_done"
-                    :disabled="isCustomer"
-                    @change="update({ is_done: !todo.is_done })"
+                    @click.prevent="toggleDone"
                     class="mt-3 h-6 w-6 shrink-0 rounded-lg border-gray-300 text-brand-primary-from focus:ring-brand-primary-from cursor-pointer"
                     title="Hotovo"
                 >
@@ -183,6 +182,16 @@
         <AttachmentLightbox v-model="galleryIndex" :items="galleryItems" />
 
         <ConfirmModal
+            :show="noRightModal"
+            title="Úkol nelze uzavřít"
+            message="Úkoly smí uzavírat jen manažer projektu."
+            confirm-button="Rozumím"
+            cancel-button=""
+            @close="noRightModal = false"
+            @confirm="noRightModal = false"
+        />
+
+        <ConfirmModal
             :show="confirmDelete"
             title="Smazat úkol"
             :message="`Opravdu chcete smazat úkol „${todo.name}“ včetně jeho výkazů a komentářů? Případné podúkoly zůstanou v seznamu.`"
@@ -255,6 +264,17 @@ const assignableUsers = computed(() => {
 const userRates = computed(() => Object.fromEntries(
     (project.value.user_rates || []).map(user => [user.id, user.pivot.hourly_rate])
 ))
+
+// Only administrators and managers close tasks; anyone else gets told so instead.
+const canClose = computed(() => ['admin', 'manager'].includes(role.value))
+const noRightModal = ref(false)
+const toggleDone = () => {
+    if (!canClose.value) {
+        noRightModal.value = true
+        return
+    }
+    update({ is_done: !props.todo.is_done })
+}
 
 const update = (data) => router.patch(`/todos/${props.todo.id}`, data, { preserveScroll: true })
 

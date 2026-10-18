@@ -56,6 +56,7 @@
                                 {{ confirmButton }}
                             </button>
                             <button 
+                                v-if="cancelButton"
                                 type="button" 
                                 @click="close"
                                 class="mt-3 inline-flex w-full justify-center rounded-2xl border-2 border-gray-100 bg-white px-8 py-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:border-gray-200 transition-all sm:mt-0 sm:w-auto font-heading"
