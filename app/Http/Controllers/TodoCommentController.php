@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Todo;
 use App\Models\TodoComment;
 use App\Models\TodoCommentAttachment;
+use App\Notifications\TodoActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,8 @@ class TodoCommentController extends Controller
                 TodoCommentAttachment::storeFor($comment, $file);
             }
         });
+
+        TodoController::notifyWatchers($todo, $request->user(), TodoActivity::COMMENTED);
 
         return back()->with('success', 'Komentář byl přidán.');
     }

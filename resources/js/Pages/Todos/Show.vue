@@ -34,13 +34,7 @@
                     <p v-if="$page.props.errors.name" class="mt-2 text-xs text-red-500 font-bold">{{ $page.props.errors.name }}</p>
                 </div>
             </div>
-            <div class="flex shrink-0 gap-3">
-                <Link
-                    :href="`/projects/${project.id}`"
-                    class="inline-flex items-center gap-2 bg-white border-2 border-gray-100 px-6 py-4 rounded-full font-bold text-gray-400 hover:text-gray-600 hover:border-gray-200 transition-all font-heading uppercase tracking-widest text-[10px]"
-                >
-                    ← Projekt
-                </Link>
+            <div v-if="!isCustomer" class="flex shrink-0 gap-3">
                 <button
                     type="button"
                     @click="confirmDelete = true"
@@ -59,8 +53,7 @@
             <div class="lg:col-span-2 space-y-8 min-w-0">
                 <!-- Subtasks -->
                 <section :class="cardClass">
-                    <h2 :class="headingClass" class="mb-4">Podúkoly ({{ todo.children.length }})</h2>
-                    <fieldset :disabled="isCustomer"><TodoSubtasks :todo="todo" /></fieldset>
+                    <fieldset :disabled="isCustomer"><TodoSubtasks :todo="todo" :heading-class="headingClass" /></fieldset>
                 </section>
 
                 <!-- Discussion; the description is its first post. -->
@@ -79,10 +72,12 @@
                     <h2 :class="headingClass">Detaily</h2>
                     <div>
                         <label :class="labelClass">Řešitel</label>
-                        <select :value="todo.assigned_user_id || ''" @change="e => update({ assigned_user_id: e.target.value || null })" :class="inputClass">
-                            <option value="">Nepřiřazeno</option>
-                            <option v-for="user in assignableUsers" :key="user.id" :value="user.id">{{ user.name }}</option>
-                        </select>
+                        <ChoicesSelect
+                            :model-value="todo.assigned_user_id || ''"
+                            :options="[{ value: '', label: 'Nepřiřazeno' }, ...assignableUsers.map(user => ({ value: user.id, label: user.name }))]"
+                            :disabled="isCustomer"
+                            @update:model-value="value => update({ assigned_user_id: value || null })"
+                        />
                         <p v-if="$page.props.errors.assigned_user_id" class="mt-1 text-xs text-red-500 font-bold">{{ $page.props.errors.assigned_user_id }}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -149,6 +144,17 @@
                         <label :class="labelClass">Štítky</label>
                         <TodoLabels :todo="todo" :labels="labels" :input-class="inputClass" />
                     </div>
+                    <div>
+                        <label :class="labelClass">Sledující</label>
+                        <ChoicesSelect
+                            :model-value="(todo.watchers || []).map(user => user.id)"
+                            :options="project.members.map(user => ({ value: user.id, label: user.name }))"
+                            :disabled="isCustomer"
+                            multiple
+                            placeholder="Nikdo nesleduje"
+                            @update:model-value="ids => update({ watcher_ids: ids })"
+                        />
+                    </div>
                     <p v-if="todo.creator" class="text-xs font-bold text-gray-400">
                         Založil(a) {{ todo.creator.name }} {{ new Date(todo.created_at).toLocaleString('cs-CZ') }}
                     </p>
@@ -206,6 +212,7 @@ import { computed, ref, watch } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import '@toast-ui/editor/dist/toastui-editor.css'
 import AttachmentLightbox from '../../Components/AttachmentLightbox.vue'
+import ChoicesSelect from '../../Components/ChoicesSelect.vue'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'

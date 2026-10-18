@@ -8,6 +8,7 @@ use App\Models\TodoAttachment;
 use App\Models\TodoComment;
 use App\Models\Todolist;
 use App\Models\User;
+use App\Notifications\TodoActivity;
 use App\Support\ActivityLog;
 use App\Support\TimeVisibility;
 use Illuminate\Http\Request;
@@ -55,6 +56,8 @@ class TodoController extends Controller
             $todo->labels()->sync($validated['label_ids']);
         }
 
+        self::notifyAssignee($todo, $request->user());
+
         return back()->with('success', 'Úkol byl přidán.');
     }
 
@@ -71,6 +74,7 @@ class TodoController extends Controller
             'creator:id,name,avatar',
             'completer:id,name',
             'labels',
+            'watchers:id,name',
             'attachments',
             'workReports.user:id,name',
             'workReports.invoice:id,number,url',
@@ -107,6 +111,8 @@ class TodoController extends Controller
             ...Todo::detailRules(),
             ...Todo::recurrenceRules(),
             ...self::labelRules(),
+            'watcher_ids' => 'sometimes|nullable|array',
+            'watcher_ids.*' => ['integer', 'distinct', $todo->todolist->project->memberRule()],
             // Description files; sent together with the description from its editor.
             'files' => 'sometimes|array|max:20',
             'files.*' => 'file|max:'.TodoComment::MAX_FILE_KILOBYTES,
@@ -125,12 +131,19 @@ class TodoController extends Controller
 
         $validated = $todo->prepareRecurrence($validated);
 
+        $previousAssigneeId = $todo->assigned_user_id;
+        $wasDone = $todo->is_done;
+
         if ($request->has('is_done')) {
             $validated = [...$validated, ...Todo::completionAttributes($request->boolean('is_done'), $request->user()->id)];
         }
 
         DB::transaction(function () use ($todo, $validated, $files, $removeIds) {
-            $todo->update(collect($validated)->except('label_ids')->all());
+            $todo->update(collect($validated)->except(['label_ids', 'watcher_ids'])->all());
+
+            if (array_key_exists('watcher_ids', $validated)) {
+                $todo->watchers()->sync($validated['watcher_ids'] ?? []);
+            }
 
             if (array_key_exists('label_ids', $validated)) {
                 $labelChanges = $todo->labels()->sync($validated['label_ids'] ?? []);
@@ -146,6 +159,14 @@ class TodoController extends Controller
                 TodoAttachment::storeFor($todo, $file);
             }
         });
+
+        if ($todo->assigned_user_id !== $previousAssigneeId) {
+            self::notifyAssignee($todo, $request->user());
+        }
+
+        if (! $wasDone && $todo->is_done) {
+            self::notifyWatchers($todo, $request->user(), TodoActivity::COMPLETED);
+        }
 
         return back()->with('success', 'Úkol byl upraven.');
     }
@@ -171,6 +192,25 @@ class TodoController extends Controller
         }
 
         return redirect()->route('projects.show', $project)->with('success', 'Úkol byl smazán.');
+    }
+
+    /**
+     * The person a todo was handed to hears about it, unless they did it themselves.
+     */
+    private static function notifyAssignee(Todo $todo, User $actor): void
+    {
+        if ($todo->assigned_user_id && $todo->assigned_user_id !== $actor->id) {
+            $todo->assignee?->notify(new TodoActivity($todo, $actor, TodoActivity::ASSIGNED));
+        }
+    }
+
+    /**
+     * Followers hear about what happened, except the person who did it and the assignee (who is told separately).
+     */
+    public static function notifyWatchers(Todo $todo, User $actor, string $type): void
+    {
+        $todo->watchers()->whereKeyNot($actor->id)->get()
+            ->each(fn (User $watcher) => $watcher->notify(new TodoActivity($todo, $actor, $type)));
     }
 
     /**

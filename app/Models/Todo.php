@@ -292,6 +292,16 @@ class Todo extends Model implements ProjectRestricted
     }
 
     /**
+     * People following the todo; they hear about new comments and its completion.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'todo_watchers')->orderBy('name');
+    }
+
+    /**
      * @return BelongsToMany<Label, $this>
      */
     public function labels(): BelongsToMany
