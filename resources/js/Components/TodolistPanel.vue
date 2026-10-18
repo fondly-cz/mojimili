@@ -61,7 +61,6 @@
 
         <div class="p-10">
             <button
-                v-if="!isCustomer"
                 @click="openNewTodo()"
                 class="mb-4 inline-flex items-center gap-2 rounded-full border-2 border-gray-100 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-brand-primary-from hover:text-brand-primary-from transition-all font-heading"
             >
@@ -115,8 +114,8 @@
                         >
                         <p v-if="todoForm.errors.name" class="mt-2 text-xs text-red-500 font-bold ml-1">{{ todoForm.errors.name }}</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
+                    <div class="grid gap-6" :class="isCustomer ? 'grid-cols-1' : 'grid-cols-2'">
+                        <div v-if="!isCustomer">
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Odhad (dny)</label>
                             <input
                                 v-model.number="todoForm.days"

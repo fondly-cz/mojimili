@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\ActivityLog;
 use App\Support\TimeVisibility;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class TodoController extends Controller
@@ -31,6 +32,11 @@ class TodoController extends Controller
             ...Todo::detailRules(),
             ...self::labelRules(),
         ], self::MESSAGES);
+
+        // A customer only describes what is needed; estimates, people, labels and structure are for the team.
+        if ($request->user()->isCustomer()) {
+            $validated = Arr::only($validated, ['name', 'description', 'due_date']);
+        }
 
         // A parent from another list would produce a todo that renders nowhere.
         if (! empty($validated['parent_id'])
