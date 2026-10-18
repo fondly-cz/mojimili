@@ -3,9 +3,18 @@
     "private": true,
     "type": "module",
     "pnpm": {
+        "overrides": {
+            "shell-quote": ">=1.8.4"
+        },
         "supportedArchitectures": {
-            "os": ["darwin", "linux"],
-            "cpu": ["arm64", "x64"]
+            "os": [
+                "darwin",
+                "linux"
+            ],
+            "cpu": [
+                "arm64",
+                "x64"
+            ]
         }
     },
     "scripts": {
@@ -17,34 +26,34 @@
     },
     "devDependencies": {
         "@inertiajs/vue3": "^2.0.0",
-        "@rushstack/eslint-patch": "^1.8.0",
-        "@tailwindcss/forms": "^0.5.3",
-        "@tailwindcss/vite": "^4.2.1",
+        "@rushstack/eslint-patch": "^1.16.1",
+        "@tailwindcss/forms": "^0.5.11",
+        "@tailwindcss/vite": "^4.3.3",
         "@vitejs/plugin-vue": "^5.0.0",
         "@vue/eslint-config-prettier": "^9.0.0",
         "@vue/eslint-config-typescript": "^13.0.0",
-        "autoprefixer": "^10.4.12",
-        "axios": "^1.11.0",
-        "concurrently": "^9.0.1",
-        "eslint": "^8.57.0",
-        "eslint-plugin-vue": "^9.23.0",
-        "laravel-vite-plugin": "^2.0.0",
-        "postcss": "^8.4.31",
-        "prettier": "^3.3.0",
-        "prettier-plugin-organize-imports": "^4.0.0",
-        "prettier-plugin-tailwindcss": "^0.6.5",
-        "tailwindcss": "^4.2.1",
-        "typescript": "^5.6.3",
-        "vite": "^7.0.4",
+        "autoprefixer": "^10.6.1",
+        "axios": "^1.20.0",
+        "concurrently": "^9.2.5",
+        "eslint": "^8.57.1",
+        "eslint-plugin-vue": "^9.33.0",
+        "laravel-vite-plugin": "^2.1.0",
+        "postcss": "^8.5.30",
+        "prettier": "^3.9.10",
+        "prettier-plugin-organize-imports": "^4.3.0",
+        "prettier-plugin-tailwindcss": "^0.6.14",
+        "tailwindcss": "^4.3.3",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.7",
         "vue": "^3.4.0",
-        "vue-tsc": "^2.0.24"
+        "vue-tsc": "^2.2.12"
     },
     "dependencies": {
         "@heroicons/vue": "^2.2.0",
-        "@inertiajs/vue3": "^2.1.11",
+        "@inertiajs/vue3": "^2.3.29",
         "@toast-ui/editor": "^3.2.2",
-        "@vitejs/plugin-vue": "^6.0.1",
-        "lodash": "^4.17.23",
-        "vue": "^3.5.22"
+        "@vitejs/plugin-vue": "^6.0.10",
+        "lodash": "^4.18.1",
+        "vue": "^3.5.44"
     }
 }
