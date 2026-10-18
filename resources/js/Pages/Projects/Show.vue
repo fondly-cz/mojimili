@@ -252,14 +252,15 @@ const statusStyles = {
 }
 
 // Tasks open by default; the chosen tab lives in ?tab= so a reload or shared link keeps it.
+// A customer sees neither the people, the reported time nor the history of the project.
 const tabs = computed(() => [
     { key: 'todos', label: 'Úkoly' },
     { key: 'notes', label: 'Poznámky', count: props.project.notes.length },
-    { key: 'members', label: 'Uživatelé', count: props.project.members.length },
+    { key: 'members', label: 'Uživatelé', count: props.project.members.length, hiddenFromCustomer: true },
     { key: 'files', label: 'Soubory', count: props.project.documents.length },
-    { key: 'reports', label: 'Výkazy' },
-    { key: 'activity', label: 'Aktivity' },
-])
+    { key: 'reports', label: 'Výkazy', hiddenFromCustomer: true },
+    { key: 'activity', label: 'Aktivity', hiddenFromCustomer: true },
+].filter(item => !(isCustomer.value && item.hiddenFromCustomer)))
 
 const initialTab = new URLSearchParams(window.location.search).get('tab')
 const tab = ref(tabs.value.some(item => item.key === initialTab) ? initialTab : 'todos')

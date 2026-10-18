@@ -100,10 +100,16 @@ class ProjectController extends Controller
             $member->setAttribute('todolist_ids', ($access[$member->id] ?? collect())->pluck('todolist_id')->values());
         });
 
+        // A customer does not see who works on the project.
+        if ($user->isCustomer()) {
+            $project->setRelation('members', collect());
+            $project->setRelation('invitations', collect());
+        }
+
         return inertia('Projects/Show', [
             'project' => $project,
             // People the viewer has already worked with in other projects, to pick from when adding someone.
-            'knownPeople' => User::query()
+            'knownPeople' => $user->isCustomer() ? [] : User::query()
                 ->whereIn('id', DB::table('project_members')
                     ->select('user_id')
                     ->whereIn('project_id', Project::visibleTo($user)->select('projects.id')))
