@@ -1,6 +1,6 @@
 <script setup>
 import { Link, usePage, router } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { debounce } from 'lodash';
 
 const page = usePage();
@@ -44,6 +44,38 @@ const closeSearch = () => {
         showResults.value = false;
     }, 200);
 };
+
+const notifications = ref({ unread: 0, items: [] });
+const showNotifications = ref(false);
+let poller = null;
+
+const loadNotifications = async () => {
+    try {
+        const response = await fetch('/notifications', { headers: { Accept: 'application/json' } });
+        if (response.ok) notifications.value = await response.json();
+    } catch (e) {
+        console.error('Notifications failed', e);
+    }
+};
+
+const xsrf = () => decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
+
+const markRead = async (url) => {
+    await fetch(url, { method: 'POST', headers: { 'X-XSRF-TOKEN': xsrf(), Accept: 'application/json' } });
+    await loadNotifications();
+};
+
+const openNotification = async (item) => {
+    showNotifications.value = false;
+    if (!item.read) await markRead(`/notifications/${item.id}/read`);
+    router.visit(item.url);
+};
+
+onMounted(() => {
+    loadNotifications();
+    poller = setInterval(loadNotifications, 60000);
+});
+onBeforeUnmount(() => clearInterval(poller));
 
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(value);
@@ -145,13 +177,54 @@ const formatCurrency = (value) => {
 
         <!-- Right section -->
         <div class="flex items-center gap-6">
-            <!-- Notifications (Visual only) -->
-            <button class="relative p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-brand-primary-from hover:text-white transition-all shadow-sm group">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span class="absolute top-2.5 right-2.5 h-2.5 w-2.5 bg-brand-primary-to border-2 border-white rounded-full group-hover:border-brand-primary-from transition-all"></span>
-            </button>
+            <!-- Notifications -->
+            <div class="relative">
+                <button
+                    type="button"
+                    @click="showNotifications = !showNotifications; if (showNotifications) loadNotifications()"
+                    class="relative p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-brand-primary-from hover:text-white transition-all shadow-sm group"
+                    aria-label="Oznámení"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span
+                        v-if="notifications.unread"
+                        class="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 flex items-center justify-center bg-brand-primary-to text-white text-[10px] font-black rounded-full border-2 border-white"
+                    >{{ notifications.unread > 9 ? '9+' : notifications.unread }}</span>
+                </button>
+
+                <div v-if="showNotifications" class="fixed inset-0 z-40" @click="showNotifications = false"></div>
+                <div
+                    v-if="showNotifications"
+                    class="absolute right-0 top-full mt-3 w-96 max-w-[90vw] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                >
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Oznámení</span>
+                        <button
+                            v-if="notifications.unread"
+                            type="button"
+                            @click="markRead('/notifications/read-all')"
+                            class="text-[10px] font-black uppercase tracking-widest text-brand-primary-from hover:opacity-80"
+                        >Označit vše jako přečtené</button>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto">
+                        <button
+                            v-for="item in notifications.items"
+                            :key="item.id"
+                            type="button"
+                            @click="openNotification(item)"
+                            class="block w-full text-left px-5 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                            :class="{ 'bg-brand-primary-from/5': !item.read }"
+                        >
+                            <div class="text-xs font-bold text-gray-700">{{ item.message }}</div>
+                            <div class="text-sm font-black text-gray-900 truncate">{{ item.todo_name }}</div>
+                            <div class="text-[10px] font-bold text-gray-400 mt-1">{{ new Date(item.created_at).toLocaleString('cs-CZ') }}</div>
+                        </button>
+                        <div v-if="!notifications.items.length" class="px-5 py-8 text-center text-sm font-bold text-gray-400">Žádná oznámení</div>
+                    </div>
+                </div>
+            </div>
 
             <!-- User profile -->
             <div class="flex items-center gap-4 pl-6 border-l border-gray-100">

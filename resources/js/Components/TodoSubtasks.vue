@@ -1,7 +1,27 @@
 <template>
     <div>
-        <p v-if="todo.children.length" class="mb-4 text-xs font-bold text-gray-400">{{ doneCount }} z {{ todo.children.length }} hotovo</p>
+        <button
+            v-if="todo.children.length"
+            type="button"
+            @click="open = !open"
+            class="flex w-full items-center justify-between text-left"
+            :aria-expanded="open"
+        >
+            <span :class="headingClass">Podúkoly ({{ todo.children.length }}) · {{ doneCount }} hotovo</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+        <button
+            v-else-if="!adding"
+            type="button"
+            @click="adding = true"
+            class="text-[10px] font-black uppercase tracking-widest text-brand-primary-from hover:opacity-80"
+        >
+            + Přidat podúkol
+        </button>
 
+        <div v-if="open || (!todo.children.length && adding)" :class="{ 'mt-4': true }">
         <ul v-if="todo.children.length" class="mb-4 space-y-2">
             <li
                 v-for="(child, index) in todo.children"
@@ -55,6 +75,7 @@
             </button>
         </form>
         <p v-if="form.errors.name || form.errors.parent_id" class="mt-2 text-xs text-red-500 font-bold">{{ form.errors.name || form.errors.parent_id }}</p>
+        </div>
 
         <ConfirmModal
             :show="!!deleting"
@@ -73,7 +94,12 @@ import ConfirmModal from './ConfirmModal.vue'
 
 const props = defineProps({
     todo: Object,
+    headingClass: String,
 })
+
+// Collapsed by default once there are subtasks; with none, only an add button shows until it is pressed.
+const open = ref(false)
+const adding = ref(false)
 
 const doneCount = computed(() => props.todo.children.filter(child => child.is_done).length)
 
@@ -84,7 +110,10 @@ const form = useForm({ name: '', parent_id: props.todo.id })
 const add = () => {
     form.post(`/todolists/${props.todo.todolist_id}/todos`, {
         preserveScroll: true,
-        onSuccess: () => form.reset('name'),
+        onSuccess: () => {
+            form.reset('name')
+            open.value = true
+        },
     })
 }
 

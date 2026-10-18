@@ -16,6 +16,7 @@ use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MyCompanyController;
 use App\Http\Controllers\PassportKeyController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\ProjectMemberController;
@@ -79,6 +80,9 @@ Route::middleware(['auth', 'hasRole', 'roleAccess', 'projectAccess'])->group(fun
     Route::get('todos/{todo}', [TodoController::class, 'show'])->name('todos.show');
     Route::patch('todos/{todo}', [TodoController::class, 'update'])->name('todos.update');
     Route::delete('todos/{todo}', [TodoController::class, 'destroy'])->name('todos.destroy');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::get('todo-attachments/{attachment}', [TodoController::class, 'attachment'])->name('todo-attachments.show');
 
     Route::post('todos/{todo}/work-reports', [WorkReportController::class, 'store'])->name('todos.work-reports.store');
