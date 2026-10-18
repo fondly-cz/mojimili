@@ -193,6 +193,16 @@
             @close="confirmTodo.show = false"
             @confirm="submitDeleteTodo"
         />
+
+        <ConfirmModal
+            :show="noRightModal"
+            title="Úkol nelze uzavřít"
+            message="Úkoly smí uzavírat jen manažer projektu."
+            confirm-button="Rozumím"
+            cancel-button=""
+            @close="noRightModal = false"
+            @confirm="noRightModal = false"
+        />
     </div>
 </template>
 
@@ -255,7 +265,16 @@ const submitTodo = () => {
 }
 
 // --- Todo mutations ---
-const toggleTodo = (todo) => router.patch(`/todos/${todo.id}`, { is_done: !todo.is_done }, { preserveScroll: true })
+// Only administrators and managers close tasks; anyone else gets told so instead.
+const canClose = computed(() => ['admin', 'manager'].includes(usePage().props.auth.user?.role))
+const noRightModal = ref(false)
+const toggleTodo = (todo) => {
+    if (!canClose.value) {
+        noRightModal.value = true
+        return
+    }
+    router.patch(`/todos/${todo.id}`, { is_done: !todo.is_done }, { preserveScroll: true })
+}
 const assignTodo = ({ todo, userId }) => router.patch(`/todos/${todo.id}`, { assigned_user_id: userId }, { preserveScroll: true })
 const setDueDate = ({ todo, dueDate }) => router.patch(`/todos/${todo.id}`, { due_date: dueDate }, { preserveScroll: true })
 
