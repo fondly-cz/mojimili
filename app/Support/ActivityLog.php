@@ -8,6 +8,7 @@ use App\Models\CompanyEmployee;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectDocument;
+use App\Models\ProjectNote;
 use App\Models\Service;
 use App\Models\Todo;
 use App\Models\TodoAttachment;
@@ -34,6 +35,7 @@ class ActivityLog
         TodoComment::class => 'comment',
         WorkReport::class => 'work_report',
         ProjectDocument::class => 'document',
+        ProjectNote::class => 'note',
         TodoAttachment::class => 'todo_attachment',
         TodoCommentAttachment::class => 'comment_attachment',
         Invoice::class => 'invoice',
@@ -209,7 +211,7 @@ class ActivityLog
             $model instanceof TodoComment, $model instanceof TodoAttachment => [$model->todo?->todolist?->project_id, $model->todo?->todolist_id, $model->todo_id],
             $model instanceof TodoCommentAttachment => self::scope($model->comment ?? new TodoComment),
             $model instanceof WorkReport => [$model->project_id ?? $model->todo?->todolist?->project_id, $model->todo?->todolist_id, $model->todo_id],
-            $model instanceof ProjectDocument => [$model->project_id, null, null],
+            $model instanceof ProjectDocument, $model instanceof ProjectNote => [$model->project_id, null, null],
             default => [null, null, null],
         };
     }

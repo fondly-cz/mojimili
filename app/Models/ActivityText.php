@@ -19,7 +19,7 @@ class ActivityText
 
     private const NOUNS = [
         'project' => 'projekt', 'todolist' => 'seznam úkolů', 'todo' => 'úkol', 'comment' => 'komentář',
-        'work_report' => 'výkaz času', 'document' => 'dokument projektu', 'todo_attachment' => 'příloha úkolu',
+        'work_report' => 'výkaz času', 'document' => 'soubor projektu', 'note' => 'poznámka projektu', 'todo_attachment' => 'příloha úkolu',
         'comment_attachment' => 'příloha komentáře', 'invoice' => 'faktura', 'calculation' => 'kalkulace',
         'company' => 'firma', 'contact' => 'kontakt', 'service' => 'služba', 'user' => 'uživatel',
     ];

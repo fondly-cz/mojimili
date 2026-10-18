@@ -83,6 +83,7 @@ class ProjectController extends Controller
             'members:id,name,email,avatar',
             'invitations',
             'documents.user:id,name',
+            'notes.user:id,name',
         ]);
 
         TimeVisibility::applyToTodos($project->todolists->flatMap->todos, $user);
