@@ -127,48 +127,5 @@ const items = [
                 </Link>
             </template>
         </nav>
-
-        <!-- Footer / Upgrade Card -->
-        <div class="p-6">
-            <div
-                class="group relative overflow-hidden rounded-[2rem] bg-gray-50 p-6"
-            >
-                <div
-                    class="absolute -right-4 -bottom-4 opacity-10 transition-transform duration-500 group-hover:rotate-12"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-24 w-24"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z"
-                        />
-                    </svg>
-                </div>
-                <div class="relative z-10">
-                    <h5
-                        class="font-heading mb-1 text-sm font-black tracking-wider text-gray-900 uppercase"
-                    >
-                        MojiMili Pro
-                    </h5>
-                    <p
-                        class="mb-4 text-xs leading-relaxed font-medium text-gray-400"
-                    >
-                        Upgrade for extra features and premium support.
-                    </p>
-                    <button
-                        class="hover:bg-brand-primary-from hover:border-brand-primary-from w-full rounded-xl border border-gray-100 bg-white py-2.5 text-xs font-bold tracking-widest text-gray-900 uppercase shadow-sm transition-all hover:text-white"
-                    >
-                        Upgrade Now
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 </template>
