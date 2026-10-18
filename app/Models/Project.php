@@ -70,6 +70,14 @@ class Project extends Model implements ProjectRestricted
     }
 
     /**
+     * @return HasMany<ProjectNote, $this>
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ProjectNote::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
      * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo

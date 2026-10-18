@@ -32,6 +32,7 @@ class RestrictRoleAccess
         'my-company.*', 'ares.*', 'search', 'api.*', 'labels.*',
         'projects.create', 'projects.store', 'projects.edit', 'projects.update', 'projects.destroy', 'projects.bulk-delete',
         'projects.members.*', 'projects.invitations.*', 'projects.documents.*', 'project-documents.*',
+        'projects.notes.*', 'project-notes.*',
     ];
 
     /**

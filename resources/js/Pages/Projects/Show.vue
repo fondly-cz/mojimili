@@ -58,7 +58,24 @@
             {{ project.description }}
         </p>
 
+        <nav class="mb-8 flex gap-1 overflow-x-auto border-b border-gray-100" aria-label="Sekce projektu">
+            <button
+                v-for="item in tabs"
+                :key="item.key"
+                type="button"
+                @click="selectTab(item.key)"
+                class="-mb-px whitespace-nowrap border-b-2 px-5 py-3 text-sm font-bold font-heading transition-colors"
+                :class="tab === item.key
+                    ? 'border-brand-primary-from text-brand-primary-from'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'"
+            >
+                {{ item.label }}
+                <span v-if="item.count !== undefined" class="ml-1 text-xs font-black text-gray-300">{{ item.count }}</span>
+            </button>
+        </nav>
+
         <ProjectMembers
+            v-if="tab === 'members'"
             :project-id="project.id"
             :members="project.members"
             :known-people="knownPeople"
@@ -66,10 +83,15 @@
             :todolists="project.todolists"
         />
 
-        <ActivityFeed :url="`/projects/${project.id}/activity`" title="Historie projektu" />
+        <ActivityFeed v-if="tab === 'activity'" :url="`/projects/${project.id}/activity`" title="Historie projektu" />
 
-        <ProjectDocuments :project-id="project.id" :documents="project.documents" />
+        <ProjectDocuments v-if="tab === 'files'" :project-id="project.id" :documents="project.documents" />
 
+        <ProjectNotes v-if="tab === 'notes'" :project-id="project.id" :notes="project.notes" />
+
+        <ProjectReports v-if="tab === 'reports'" :todolists="project.todolists" />
+
+        <template v-if="tab === 'todos'">
         <!-- Progress summary -->
         <div class="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div class="bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
@@ -152,6 +174,7 @@
                 </div>
             </div>
         </div>
+        </template>
 
         <!-- New todolist modal -->
         <Modal :show="newList.show" title="Nový seznam úkolů" @close="newList.show = false">
@@ -199,6 +222,8 @@ import Modal from '../../Components/Modal.vue'
 import TodolistPanel from '../../Components/TodolistPanel.vue'
 import ActivityFeed from '../../Components/ActivityFeed.vue'
 import ProjectDocuments from '../../Components/ProjectDocuments.vue'
+import ProjectNotes from '../../Components/ProjectNotes.vue'
+import ProjectReports from '../../Components/ProjectReports.vue'
 import ProjectMembers from '../../Components/ProjectMembers.vue'
 import CreateTodolistFromCalculationModal from '../../Components/CreateTodolistFromCalculationModal.vue'
 import { formatCurrency, formatMinutes, reportAmount } from '../../utils/billing'
@@ -224,6 +249,30 @@ const statusStyles = {
     on_hold: 'bg-amber-500 text-white shadow-amber-100',
     done: 'bg-brand-accent text-white shadow-blue-100',
     archived: 'bg-gray-400 text-white shadow-gray-100',
+}
+
+// Tasks open by default; the chosen tab lives in ?tab= so a reload or shared link keeps it.
+const tabs = computed(() => [
+    { key: 'todos', label: 'Úkoly' },
+    { key: 'notes', label: 'Poznámky', count: props.project.notes.length },
+    { key: 'members', label: 'Uživatelé', count: props.project.members.length },
+    { key: 'files', label: 'Soubory', count: props.project.documents.length },
+    { key: 'reports', label: 'Výkazy' },
+    { key: 'activity', label: 'Aktivity' },
+])
+
+const initialTab = new URLSearchParams(window.location.search).get('tab')
+const tab = ref(tabs.value.some(item => item.key === initialTab) ? initialTab : 'todos')
+
+const selectTab = (key) => {
+    tab.value = key
+    const url = new URL(window.location.href)
+    if (key === 'todos') {
+        url.searchParams.delete('tab')
+    } else {
+        url.searchParams.set('tab', key)
+    }
+    window.history.replaceState(window.history.state, '', url)
 }
 
 // A todo can be handed only to a person from the project; someone removed since stays on the todos they hold.

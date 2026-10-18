@@ -1,14 +1,14 @@
 <template>
     <section class="mb-8 bg-white rounded-[2rem] border border-gray-50 p-8 shadow-sm">
         <div class="flex items-center justify-between gap-4 mb-4">
-            <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Dokumenty ({{ documents.length }})</h2>
+            <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 font-heading">Soubory ({{ documents.length }})</h2>
             <button
                 v-if="!editing && canEdit"
                 type="button"
                 @click="start(null)"
                 class="text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-brand-primary-from transition-colors"
             >
-                + Dokument
+                + Soubor
             </button>
         </div>
 
@@ -16,20 +16,20 @@
             <input
                 v-model="form.name"
                 type="text"
-                placeholder="Název dokumentu"
+                placeholder="Název souboru"
                 class="block w-full px-4 py-2.5 bg-gray-50 border-gray-100 rounded-xl text-sm font-semibold text-gray-700 focus:ring-brand-primary-from focus:border-brand-primary-from"
             >
             <p v-if="form.errors.name" class="text-xs text-red-500 font-bold">{{ form.errors.name }}</p>
-            <RichEditor v-model="form.content" height="320px" placeholder="Obsah dokumentu..." />
+            <RichEditor v-model="form.content" height="320px" placeholder="Obsah souboru..." />
             <div class="flex items-center gap-3">
                 <button type="submit" :disabled="form.processing" class="brand-gradient px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50">
-                    Uložit dokument
+                    Uložit soubor
                 </button>
                 <button type="button" @click="editing = false" class="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600">Zrušit</button>
             </div>
         </form>
 
-        <p v-else-if="!documents.length" class="text-sm font-bold text-gray-300">Projekt zatím nemá žádné dokumenty.</p>
+        <p v-else-if="!documents.length" class="text-sm font-bold text-gray-300">Projekt zatím nemá žádné soubory.</p>
 
         <ul v-else class="divide-y divide-gray-50">
             <li v-for="document in documents" :key="document.id" class="py-3">
@@ -47,7 +47,7 @@
                 <div
                     v-if="openId === document.id"
                     class="toastui-editor-contents rich-images mt-3"
-                    v-html="document.content || '<p>Prázdný dokument.</p>'"
+                    v-html="document.content || '<p>Prázdný soubor.</p>'"
                     @click="onImageClick"
                 ></div>
             </li>
@@ -57,8 +57,8 @@
 
         <ConfirmModal
             :show="!!deleting"
-            title="Smazat dokument"
-            :message="`Opravdu chcete smazat dokument „${deleting?.name}“?`"
+            title="Smazat soubor"
+            :message="`Opravdu chcete smazat soubor „${deleting?.name}“?`"
             @close="deleting = null"
             @confirm="destroy"
         />

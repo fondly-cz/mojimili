@@ -19,6 +19,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\ProjectMemberController;
+use App\Http\Controllers\ProjectNoteController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TodoCommentController;
@@ -57,6 +58,10 @@ Route::middleware(['auth', 'hasRole', 'roleAccess', 'projectAccess'])->group(fun
     Route::post('projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('projects.documents.store');
     Route::patch('project-documents/{document}', [ProjectDocumentController::class, 'update'])->name('project-documents.update');
     Route::delete('project-documents/{document}', [ProjectDocumentController::class, 'destroy'])->name('project-documents.destroy');
+
+    Route::post('projects/{project}/notes', [ProjectNoteController::class, 'store'])->name('projects.notes.store');
+    Route::patch('project-notes/{note}', [ProjectNoteController::class, 'update'])->name('project-notes.update');
+    Route::delete('project-notes/{note}', [ProjectNoteController::class, 'destroy'])->name('project-notes.destroy');
 
     Route::post('labels', [LabelController::class, 'store'])->name('labels.store');
     Route::patch('labels/{label}', [LabelController::class, 'update'])->name('labels.update');

@@ -18,20 +18,20 @@ class ProjectDocumentController extends Controller
             'sort_order' => $project->documents()->max('sort_order') + 1,
         ]);
 
-        return back()->with('success', 'Dokument byl přidán.');
+        return back()->with('success', 'Soubor byl přidán.');
     }
 
     public function update(Request $request, ProjectDocument $document)
     {
         $document->update($request->validate(ProjectDocument::rules(partial: true)));
 
-        return back()->with('success', 'Dokument byl upraven.');
+        return back()->with('success', 'Soubor byl upraven.');
     }
 
     public function destroy(ProjectDocument $document)
     {
         $document->delete();
 
-        return back()->with('success', 'Dokument byl smazán.');
+        return back()->with('success', 'Soubor byl smazán.');
     }
 }
