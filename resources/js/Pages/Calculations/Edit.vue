@@ -49,12 +49,13 @@
                     <button
                         v-if="calculation.status === 'confirmed' && $page.props.auth.user?.role === 'admin'"
                         @click="unconfirm"
-                        class="p-2.5 bg-gray-50 text-amber-500 rounded-xl hover:text-amber-600 hover:bg-white hover:shadow-sm transition-all"
-                        title="Zrušit potvrzení zákazníkem"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-600 rounded-xl text-sm font-bold hover:bg-amber-100 transition-all"
+                        title="Vrátí kalkulaci do stavu rozpracované, zákazník ji bude moci znovu upravit a potvrdit"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v6h6M3 13a9 9 0 1 0 3-7.7L3 8" />
                         </svg>
+                        Zrušit potvrzení
                     </button>
                     <button
                         @click="confirmDeleteOpen = true"
@@ -473,6 +474,7 @@
         </div>
 
         <CalculationViewLog :views="views" />
+        <CalculationHistory :history="history" />
     </Layout>
 </template>
 
@@ -485,12 +487,17 @@ import CalculationItemNode from '../../Components/CalculationItemNode.vue'
 import RichEditor from '../../Components/RichEditor.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 import CalculationViewLog from '../../Components/CalculationViewLog.vue'
+import CalculationHistory from '../../Components/CalculationHistory.vue'
 import debounce from 'lodash/debounce'
 
 const props = defineProps({
     calculation: Object,
     services: Array,
     views: {
+        type: Array,
+        default: () => [],
+    },
+    history: {
         type: Array,
         default: () => [],
     },

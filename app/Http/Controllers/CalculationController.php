@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\SaveCalculation;
 use App\Mail\CalculationConfirmed;
+use App\Models\Activity;
 use App\Models\Calculation;
 use App\Models\CalculationItem;
 use App\Models\CalculationView;
@@ -154,6 +155,12 @@ class CalculationController extends Controller
             'calculation' => $calculation->load('items.service'),
             'services' => Service::where('is_active', true)->get(),
             'views' => $this->viewLog($calculation),
+            'history' => Activity::where('subject_type', 'calculation')
+                ->where('subject_id', $calculation->id)
+                ->with('user:id,name')
+                ->orderByDesc('id')
+                ->limit(200)
+                ->get(),
         ]);
     }
 
@@ -184,7 +191,7 @@ class CalculationController extends Controller
 
         $validated['show_vat'] = $request->boolean('show_vat');
 
-        $saveCalculation->update($calculation, $validated);
+        $saveCalculation->update($calculation, $validated, keepItems: true);
 
         return redirect()->route('calculations.show', $calculation)->with('success', 'Kalkulace byla úspěšně upravena.');
     }
