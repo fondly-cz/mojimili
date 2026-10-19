@@ -82,6 +82,16 @@ class ActivityLog
         self::write('todo.updated', 'todo', $todo->id, $todo->name, ['changes' => [$field => []]], $todo->todolist?->project_id, $todo->todolist_id, $todo->id);
     }
 
+    /**
+     * A change to a calculation that is not a column of its own, e.g. an item being added.
+     *
+     * @param  array<string, mixed>  $properties
+     */
+    public static function noteCalculation(Calculation $calculation, string $event, array $properties = []): void
+    {
+        self::write($event, 'calculation', $calculation->id, self::label($calculation), $properties, null, null, null);
+    }
+
     private static function record(Model $model, string $action): void
     {
         $subject = self::SUBJECTS[$model::class];
@@ -114,6 +124,15 @@ class ActivityLog
         if ($model instanceof Todolist && array_key_exists('archived_at', $changes)) {
             $events[] = [$changes['archived_at'] ? 'todolist.archived' : 'todolist.unarchived', []];
             unset($changes['archived_at']);
+        }
+
+        if ($model instanceof Calculation) {
+            if (array_key_exists('status', $changes)) {
+                $events[] = [$changes['status'] === 'confirmed' ? 'calculation.confirmed' : 'calculation.unconfirmed', []];
+            }
+
+            // Totals follow the approved items and are not a decision of their own.
+            unset($changes['status'], $changes['total_price'], $changes['total_days']);
         }
 
         if ($changes !== []) {

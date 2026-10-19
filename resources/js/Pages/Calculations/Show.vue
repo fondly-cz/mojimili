@@ -27,6 +27,9 @@
                     >
                         ↩️ Zrušit potvrzení
                     </button>
+                    <a :href="calculation.public_url" target="_blank" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-gray-700 bg-white hover:bg-gray-50 transition-all font-heading" title="Otevřít veřejný odkaz">
+                        🔗 Veřejný odkaz
+                    </a>
                     <button @click="print" class="inline-flex items-center px-6 py-3 border-2 border-gray-100 shadow-sm text-sm font-bold rounded-full text-gray-700 bg-white hover:bg-gray-50 transition-all font-heading">
                         🖨️ PDF / Tisk
                     </button>

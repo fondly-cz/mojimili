@@ -14,7 +14,10 @@ class ActivityText
         'budget' => 'rozpočet', 'budget_minutes' => 'rozpočet (čas)', 'company_id' => 'firma', 'body' => 'text',
         'content' => 'obsah', 'minutes' => 'doba', 'date' => 'datum', 'started_at' => 'začátek', 'ended_at' => 'konec',
         'user_id' => 'osoba', 'invoice_id' => 'faktura', 'caption' => 'popisek', 'role' => 'role', 'email' => 'e-mail',
-        'phone' => 'telefon', 'labels' => 'štítky',
+        'phone' => 'telefon', 'labels' => 'štítky', 'price' => 'cena', 'payment_period' => 'platba',
+        'is_required' => 'povinná', 'item_parent' => 'zařazení', 'customer_name' => 'jméno', 'customer_email' => 'e-mail',
+        'customer_phone' => 'telefon', 'customer_company' => 'firma', 'show_vat' => 'ceny s DPH', 'note' => 'poznámka',
+        'valid_days' => 'platnost (dny)',
     ];
 
     private const NOUNS = [
@@ -48,6 +51,12 @@ class ActivityText
             'project.member_removed' => "Z projektu odebrán(a) {$label}",
             'project.invited' => "Pozvána e-mailem osoba {$label}".self::access($p),
             'project.invitation_cancelled' => "Zrušena pozvánka pro {$label}",
+            'calculation.confirmed' => "Potvrzena kalkulace {$label}",
+            'calculation.unconfirmed' => "Zrušeno potvrzení kalkulace {$label}",
+            'calculation.item_added' => 'Přidána položka „'.($p['item'] ?? '').'“'.(isset($p['price']) ? ' ('.self::value($p['price']).' Kč)' : ''),
+            'calculation.item_removed' => 'Odebrána položka „'.($p['item'] ?? '').'“'.(isset($p['price']) ? ' ('.self::value($p['price']).' Kč)' : ''),
+            'calculation.item_changed' => 'Upravena položka „'.($p['item'] ?? '').'“'.self::changes($p),
+            'calculation.items_replaced' => 'Nahrazeny všechny položky kalkulace ('.($p['count'] ?? 0).')',
             default => null,
         };
 
