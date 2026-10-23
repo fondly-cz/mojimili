@@ -14,6 +14,10 @@ LABEL maintainer="fondly.cz"
 ARG NODE_VERSION=22
 ARG PHP_VERSION=8.4
 
+# Změna hodnoty zneplatní cache vrstvy s apt-get a vynutí aktuální patch verzi
+# PHP z PPA. Při aktualizaci PHP stačí hodnotu přepsat a udělat redeploy.
+ARG PHP_CACHE_BUST=2026-10-23
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Prague
 ENV PHP_CLI_SERVER_WORKERS=4
@@ -22,7 +26,8 @@ WORKDIR /var/www/html
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get update && apt-get upgrade -y \
+RUN echo "PHP cache bust: ${PHP_CACHE_BUST}" \
+    && apt-get update && apt-get upgrade -y \
     && mkdir -p /etc/apt/keyrings \
     && apt-get install -y gnupg curl ca-certificates zip unzip git supervisor libcap2-bin \
     && curl -sS 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xb8dc7e53946656efbce4c1dd71daeaab4ad4cab6' | gpg --dearmor | tee /etc/apt/keyrings/ppa_ondrej_php.gpg > /dev/null \
