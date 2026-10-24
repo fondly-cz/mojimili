@@ -48,10 +48,14 @@ class Todo extends Model implements ProjectRestricted
             }
         });
 
-        // Whoever a todo is handed to keeps following it, even after it is passed on to somebody else.
+        // Whoever creates a todo, or is handed it, keeps following it, even after it is passed on to somebody else.
         static::saved(function (Todo $todo) {
             if ($todo->wasRecentlyCreated || $todo->wasChanged('assigned_user_id')) {
                 $todo->watchAssignee();
+            }
+
+            if ($todo->wasRecentlyCreated) {
+                $todo->watchCreator();
             }
         });
 
@@ -65,6 +69,13 @@ class Todo extends Model implements ProjectRestricted
         static::deleted(function (Todo $todo) {
             TodoComment::purgeFilesFor([$todo->id]);
         });
+    }
+
+    public function watchCreator(): void
+    {
+        if ($this->created_by_user_id) {
+            $this->watchers()->syncWithoutDetaching([$this->created_by_user_id]);
+        }
     }
 
     public function watchAssignee(): void

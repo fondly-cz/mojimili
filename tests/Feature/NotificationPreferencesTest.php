@@ -65,6 +65,26 @@ class NotificationPreferencesTest extends TestCase
         Notification::assertSentTo($second, TodoActivity::class, fn ($n) => $n->type === TodoActivity::COMMENTED);
     }
 
+    public function test_creator_of_a_todo_becomes_its_watcher(): void
+    {
+        Notification::fake();
+        $creator = User::factory()->create(['role' => UserRole::MANAGER]);
+        $other = User::factory()->create(['role' => UserRole::MANAGER]);
+        $project = Project::factory()->create();
+        $project->grantAccess($creator, true);
+        $project->grantAccess($other, true);
+        $list = Todolist::factory()->create(['project_id' => $project->id]);
+
+        $this->actingAs($creator)->post("/todolists/{$list->id}/todos", ['name' => 'Nový úkol']);
+
+        $todo = $list->todos()->firstOrFail();
+        $this->assertSame([$creator->id], $todo->watchers()->pluck('users.id')->all());
+
+        $this->actingAs($other)->post("/todos/{$todo->id}/comments", ['body' => '<p>Ahoj</p>']);
+
+        Notification::assertSentTo($creator, TodoActivity::class, fn ($n) => $n->type === TodoActivity::COMMENTED);
+    }
+
     public function test_follower_is_not_told_about_lists_they_cannot_see(): void
     {
         Notification::fake();
