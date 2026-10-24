@@ -108,6 +108,7 @@ class ProjectController extends Controller
 
         return inertia('Projects/Show', [
             'project' => $project,
+            'following' => $project->followers()->whereKey($user->id)->exists(),
             // People the viewer has already worked with in other projects, to pick from when adding someone.
             'knownPeople' => $user->isCustomer() ? [] : User::query()
                 ->whereIn('id', DB::table('project_members')

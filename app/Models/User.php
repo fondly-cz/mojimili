@@ -33,6 +33,8 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
         'role',
         'google_id',
         'avatar',
+        'notify_in_app',
+        'notify_by_mail',
     ];
 
     protected static function booted(): void
@@ -100,6 +102,8 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'notify_in_app' => 'boolean',
+            'notify_by_mail' => 'boolean',
         ];
     }
 }

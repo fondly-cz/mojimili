@@ -15,6 +15,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MyCompanyController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\PassportKeyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectNoteController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\SmtpSettingController;
 use App\Http\Controllers\TodoCommentController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\TodolistController;
@@ -116,6 +118,17 @@ Route::middleware(['auth', 'hasRole', 'roleAccess', 'projectAccess'])->group(fun
         Route::get('/settings/api-keys', [PassportKeyController::class, 'edit'])->name('passport-keys.edit');
         Route::post('/settings/api-keys', [PassportKeyController::class, 'regenerate'])->name('passport-keys.regenerate');
     });
+
+    // SMTP server z administrace (přebíjí .env) a test odeslání
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/settings/email', [SmtpSettingController::class, 'edit'])->name('smtp-settings.edit');
+        Route::put('/settings/email', [SmtpSettingController::class, 'update'])->name('smtp-settings.update');
+        Route::delete('/settings/email', [SmtpSettingController::class, 'destroy'])->name('smtp-settings.destroy');
+        Route::post('/settings/email/test', [SmtpSettingController::class, 'test'])->middleware('throttle:10,1')->name('smtp-settings.test');
+    });
+
+    Route::patch('/profile/notifications', [NotificationPreferenceController::class, 'update'])->name('profile.notifications.update');
+    Route::patch('projects/{project}/follow', [NotificationPreferenceController::class, 'follow'])->name('projects.follow');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

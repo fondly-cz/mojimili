@@ -143,6 +143,7 @@ class TodoController extends Controller
 
             if (array_key_exists('watcher_ids', $validated)) {
                 $todo->watchers()->sync($validated['watcher_ids'] ?? []);
+                $todo->watchAssignee();
             }
 
             if (array_key_exists('label_ids', $validated)) {
@@ -205,11 +206,19 @@ class TodoController extends Controller
     }
 
     /**
-     * Followers hear about what happened, except the person who did it and the assignee (who is told separately).
+     * Followers of the todo and of its whole project hear about what happened, except the person who did it.
+     * Project followers are told only about todolists they are allowed to see.
      */
     public static function notifyWatchers(Todo $todo, User $actor, string $type): void
     {
+        $todolist = $todo->todolist;
+
+        $projectFollowers = $todolist->project->followers()->whereKeyNot($actor->id)->get()
+            ->filter(fn (User $follower) => $todolist->isVisibleTo($follower));
+
         $todo->watchers()->whereKeyNot($actor->id)->get()
+            ->merge($projectFollowers)
+            ->unique('id')
             ->each(fn (User $watcher) => $watcher->notify(new TodoActivity($todo, $actor, $type)));
     }
 
