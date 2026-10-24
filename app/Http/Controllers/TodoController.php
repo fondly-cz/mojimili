@@ -198,7 +198,7 @@ class TodoController extends Controller
     /**
      * The person a todo was handed to hears about it, unless they did it themselves.
      */
-    private static function notifyAssignee(Todo $todo, User $actor): void
+    public static function notifyAssignee(Todo $todo, User $actor): void
     {
         if ($todo->assigned_user_id && $todo->assigned_user_id !== $actor->id) {
             $todo->assignee?->notify(new TodoActivity($todo, $actor, TodoActivity::ASSIGNED));

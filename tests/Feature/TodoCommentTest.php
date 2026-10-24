@@ -57,6 +57,71 @@ class TodoCommentTest extends TestCase
         }
     }
 
+    public function test_a_post_can_hand_the_todo_over_and_report_time(): void
+    {
+        $user = $this->manager();
+        $other = $this->manager();
+        $todo = Todo::factory()->create();
+        $project = $todo->todolist->project;
+        $project->grantAccess($other, true);
+
+        $this->actingAs($user)
+            ->post("/todos/{$todo->id}/comments", [
+                'body' => '<p>Předávám.</p>',
+                'assigned_user_id' => $other->id,
+                'report_minutes' => 75,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($other->id, $todo->fresh()->assigned_user_id);
+
+        $report = $todo->workReports()->firstOrFail();
+        $this->assertSame($user->id, $report->user_id);
+        $this->assertSame(75, $report->minutes);
+        $this->assertSame(now()->toDateString(), $report->date->toDateString());
+    }
+
+    public function test_a_post_without_extras_leaves_assignee_and_time_alone(): void
+    {
+        $todo = Todo::factory()->create();
+        $assignee = $todo->assigned_user_id;
+
+        $this->actingAs($this->manager())
+            ->post("/todos/{$todo->id}/comments", ['body' => '<p>Jen text.</p>'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($assignee, $todo->fresh()->assigned_user_id);
+        $this->assertCount(0, $todo->workReports);
+    }
+
+    public function test_assignee_outside_the_project_is_rejected(): void
+    {
+        $todo = Todo::factory()->create();
+        $this->everyoneInEveryProject = false;
+        $outsider = User::factory()->create(['role' => UserRole::MANAGER]);
+        $todo->todolist->project->members()->detach($outsider->id);
+
+        $this->actingAs($this->manager())
+            ->post("/todos/{$todo->id}/comments", ['body' => '<p>x</p>', 'assigned_user_id' => $outsider->id])
+            ->assertSessionHasErrors('assigned_user_id');
+    }
+
+    public function test_a_customer_cannot_use_the_extras(): void
+    {
+        $customer = User::factory()->create(['role' => UserRole::CUSTOMER]);
+        $todo = Todo::factory()->create();
+        $original = $todo->assigned_user_id;
+
+        $this->actingAs($customer)
+            ->post("/todos/{$todo->id}/comments", ['body' => '<p>x</p>', 'report_minutes' => 30])
+            ->assertForbidden();
+
+        $this->actingAs($customer)
+            ->post("/todos/{$todo->id}/comments", ['body' => '<p>x</p>', 'assigned_user_id' => $customer->id]);
+
+        $this->assertSame($original, $todo->fresh()->assigned_user_id);
+    }
+
     public function test_an_attachment_up_to_the_size_limit_is_accepted_and_a_bigger_one_rejected(): void
     {
         $user = $this->manager();

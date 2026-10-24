@@ -82,7 +82,7 @@
                 </div>
                 <div class="md:col-span-1">
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Čas</label>
-                    <input v-model="duration" @input="onDurationInput" type="text" required placeholder="1:30" :class="inputClass">
+                    <input v-model="duration" @input="onDurationInput" type="text" required placeholder="1h 30m" :class="inputClass">
                 </div>
                 <div v-if="isStaff" class="md:col-span-1">
                     <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Kč/h</label>
@@ -130,7 +130,7 @@
 import { computed, ref } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import ConfirmModal from './ConfirmModal.vue'
-import { addMinutesToTime, formatClock, formatCurrency, formatDate, formatMinutes, formatTimeRange, minutesBetween, parseDuration, reportAmount } from '../utils/billing'
+import { addMinutesToTime, DURATION_HINT, formatClock, formatCurrency, formatDate, formatMinutes, formatTimeRange, minutesBetween, parseDuration, reportAmount } from '../utils/billing'
 
 const props = defineProps({
     todo: Object,
@@ -230,7 +230,7 @@ const submit = () => {
     const minutes = parseDuration(duration.value)
 
     if (!minutes) {
-        durationError.value = 'Zadejte čas jako minuty (90), hodiny a minuty (1:30) nebo hodiny (1,5).'
+        durationError.value = DURATION_HINT
         return
     }
 

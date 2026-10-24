@@ -74,7 +74,7 @@
                         <label :class="labelClass">Řešitel</label>
                         <ChoicesSelect
                             :model-value="todo.assigned_user_id || ''"
-                            :options="[{ value: '', label: 'Nepřiřazeno' }, ...assignableUsers.map(user => ({ value: user.id, label: user.name }))]"
+                            :options="[{ value: '', label: 'Nepřiřazeno' }, ...assignableUsers.map(user => ({ value: user.id, label: user.name, avatar: user.avatar ?? null }))]"
                             :disabled="isCustomer"
                             @update:model-value="value => update({ assigned_user_id: value || null })"
                         />
@@ -133,12 +133,7 @@
                     </div>
                     <div>
                         <label :class="labelClass">Priorita</label>
-                        <select :value="todo.priority || ''" @change="e => update({ priority: e.target.value || null })" :class="inputClass">
-                            <option value="">Bez priority</option>
-                            <option value="high">Vysoká</option>
-                            <option value="medium">Střední</option>
-                            <option value="low">Nízká</option>
-                        </select>
+                        <TodoPriority :model-value="todo.priority" :disabled="isCustomer" @update:model-value="value => update({ priority: value })" />
                     </div>
                     <div>
                         <label :class="labelClass">Štítky</label>
@@ -148,7 +143,7 @@
                         <label :class="labelClass">Sledující</label>
                         <ChoicesSelect
                             :model-value="(todo.watchers || []).map(user => user.id)"
-                            :options="project.members.map(user => ({ value: user.id, label: user.name }))"
+                            :options="project.members.map(user => ({ value: user.id, label: user.name, avatar: user.avatar ?? null }))"
                             :disabled="isCustomer"
                             multiple
                             placeholder="Nikdo nesleduje"
@@ -217,6 +212,7 @@ import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import ConfirmModal from '../../Components/ConfirmModal.vue'
 import TodoComments from '../../Components/TodoComments.vue'
+import TodoPriority from '../../Components/TodoPriority.vue'
 import TodoLabels from '../../Components/TodoLabels.vue'
 import TodoRecurrence from '../../Components/TodoRecurrence.vue'
 import TodoSubtasks from '../../Components/TodoSubtasks.vue'
