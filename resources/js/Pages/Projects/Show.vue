@@ -44,6 +44,15 @@
                     </svg>
                     Nový seznam
                 </button>
+                <button
+                    type="button"
+                    @click="toggleFollow"
+                    class="inline-flex items-center gap-2 border-2 px-6 py-4 rounded-full font-bold transition-all font-heading uppercase tracking-widest text-[10px]"
+                    :class="following ? 'bg-brand-primary-from/10 border-brand-primary-from text-brand-primary-from' : 'bg-white border-gray-100 text-gray-500 hover:text-brand-primary-from hover:border-brand-primary-from'"
+                    :title="following ? 'Dostáváte notifikace o všech úkolech projektu' : 'Dostávat notifikace o všech úkolech projektu'"
+                >
+                    {{ following ? 'Sledujete projekt' : 'Sledovat projekt' }}
+                </button>
                 <Link
                     v-if="isStaff"
                     :href="`/projects/${project.id}/edit`"
@@ -215,7 +224,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import Layout from '../../Components/Layout.vue'
 import Breadcrumbs from '../../Components/Breadcrumbs.vue'
 import Modal from '../../Components/Modal.vue'
@@ -235,7 +244,16 @@ const props = defineProps({
     project: Object,
     knownPeople: Array,
     calculations: Array,
+    following: Boolean,
 })
+
+const toggleFollow = () => {
+    router.patch(
+        route('projects.follow', props.project.id),
+        { follow: !props.following },
+        { preserveScroll: true },
+    )
+}
 
 const statusLabels = {
     active: 'Aktivní',

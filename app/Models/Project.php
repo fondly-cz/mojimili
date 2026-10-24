@@ -129,9 +129,36 @@ class Project extends Model implements ProjectRestricted
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'project_members')
-            ->withPivot('all_todolists')
+            ->withPivot('all_todolists', 'follow_all')
             ->withTimestamps()
             ->orderBy('users.name');
+    }
+
+    /**
+     * Members who want to hear about everything that happens on the project's todos.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function followers(): BelongsToMany
+    {
+        return $this->members()->wherePivot('follow_all', true);
+    }
+
+    /**
+     * Turn following of the whole project on or off. An administrator who is not yet a
+     * member is added with access to everything, because following is stored on membership.
+     */
+    public function setFollowedBy(User $user, bool $follow): void
+    {
+        if (! $this->members()->whereKey($user->id)->exists()) {
+            if (! $follow) {
+                return;
+            }
+
+            $this->grantAccess($user, true);
+        }
+
+        $this->members()->updateExistingPivot($user->id, ['follow_all' => $follow]);
     }
 
     /**

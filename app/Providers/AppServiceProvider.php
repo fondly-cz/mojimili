@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Models\PassportKey;
+use App\Models\SmtpSetting;
 use App\Support\ActivityLog;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
@@ -35,6 +38,27 @@ class AppServiceProvider extends ServiceProvider
         Passport::refreshTokensExpireIn(now()->addDays(60));
 
         $this->loadPassportKeysFromDatabase();
+        $this->loadSmtpFromDatabase();
+    }
+
+    /**
+     * SMTP z administrace má přednost před MAIL_* z .env. Načítá se při startu
+     * a znovu před každým jobem, protože queue worker je dlouhoběžící proces
+     * a jinak by změnu nastavení zaznamenal až po restartu.
+     */
+    private function loadSmtpFromDatabase(): void
+    {
+        $apply = function (): void {
+            try {
+                SmtpSetting::active()?->applyToConfig();
+            } catch (\Throwable) {
+                // Tabulka ještě neexistuje (migrace) nebo DB není dostupná – platí .env.
+            }
+        };
+
+        $apply();
+
+        Event::listen(JobProcessing::class, $apply);
     }
 
     /**

@@ -33,7 +33,10 @@ class TodoActivity extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return array_values(array_filter([
+            ($notifiable->notify_in_app ?? true) ? 'database' : null,
+            ($notifiable->notify_by_mail ?? true) ? 'mail' : null,
+        ]));
     }
 
     public function toMail(object $notifiable): MailMessage
