@@ -14,7 +14,21 @@ class TodoCommentController extends Controller
 {
     public function store(Request $request, Todo $todo)
     {
-        $validated = $request->validate($this->rules());
+        $project = $todo->todolist->project;
+
+        $validated = $request->validate([
+            ...$this->rules(),
+            // Optional extras sent along with the post: hand the todo over and/or report time.
+            'assigned_user_id' => ['sometimes', 'nullable', $project->memberRule()],
+            'report_minutes' => 'sometimes|nullable|integer|min:1|max:1440',
+        ], ['assigned_user_id.exists' => 'Řešitelem může být jen osoba přiřazená k projektu.']);
+
+        $user = $request->user();
+        $reportMinutes = $validated['report_minutes'] ?? null;
+        $changeAssignee = $request->has('assigned_user_id') && ! $user->isCustomer();
+
+        abort_if($reportMinutes && ! $user->canReportTime(), 403);
+
         $files = $request->file('files', []);
 
         $comment = new TodoComment(['body' => $validated['body'] ?? null]);
@@ -23,17 +37,34 @@ class TodoCommentController extends Controller
             throw ValidationException::withMessages(['body' => 'Komentář musí obsahovat text nebo přílohu.']);
         }
 
-        DB::transaction(function () use ($todo, $comment, $request, $files) {
+        DB::transaction(function () use ($todo, $comment, $files, $project, $reportMinutes, $changeAssignee, $validated, $user) {
             $comment->todo()->associate($todo);
-            $comment->user()->associate($request->user());
+            $comment->user()->associate($user);
             $comment->save();
 
             foreach ($files as $file) {
                 TodoCommentAttachment::storeFor($comment, $file);
             }
+
+            if ($reportMinutes) {
+                $todo->workReports()->create([
+                    'user_id' => $user->id,
+                    'date' => now()->toDateString(),
+                    'minutes' => $reportMinutes,
+                    'hourly_rate' => $project->rateFor($user->id),
+                ]);
+            }
+
+            if ($changeAssignee) {
+                $todo->update(['assigned_user_id' => $validated['assigned_user_id'] ?? null]);
+            }
         });
 
-        TodoController::notifyWatchers($todo, $request->user(), TodoActivity::COMMENTED);
+        if ($changeAssignee && $todo->wasChanged('assigned_user_id')) {
+            TodoController::notifyAssignee($todo, $user);
+        }
+
+        TodoController::notifyWatchers($todo, $user, TodoActivity::COMMENTED);
 
         return back()->with('success', 'Komentář byl přidán.');
     }

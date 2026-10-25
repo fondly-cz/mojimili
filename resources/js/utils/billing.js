@@ -18,18 +18,28 @@ export const formatDate = (value) => value
     ? new Date(value).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
     : '—'
 
+export const DURATION_HINT = 'Zadejte čas jako 16m, 120m, 1h, 1h 30m, 1:15 nebo 1,25 (hodiny).'
+
 /**
- * Accepts "90", "1:30", "1.5" or "1,5 h" and returns minutes (null when unparseable).
+ * Accepts "16m", "120m", "1h", "1h 30m", "1:15", "1,25" (hours), "1,25 h" or a bare "90" (minutes)
+ * and returns minutes (null when unparseable).
  */
 export const parseDuration = (input) => {
-    const value = String(input ?? '').trim().toLowerCase().replace(/\s*h$/, '')
+    const value = String(input ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
 
     if (value === '') return null
 
     const clock = value.match(/^(\d+):(\d{1,2})$/)
     if (clock) return Number(clock[1]) * 60 + Number(clock[2])
 
-    if (/^\d+$/.test(value)) return Number(value)
+    // "16m", "120 min", "1h", "1h 30m", "1 hod 15 min"
+    const units = value.match(/^(?:(\d+(?:[.,]\d+)?) ?(?:h|hod|hodin[ay]?))? ?(?:(\d+) ?(?:m|min|minut[ay]?)?)?$/)
+    if (units && (units[1] || units[2])) {
+        const hours = units[1] ? Number(units[1].replace(',', '.')) : 0
+        const minutes = units[2] ? Number(units[2]) : 0
+        // A lone number without a unit is minutes only when nothing else is given ("90").
+        return Math.round(hours * 60) + minutes || null
+    }
 
     const decimal = value.replace(',', '.')
     if (/^\d*\.\d+$/.test(decimal)) return Math.round(Number(decimal) * 60)

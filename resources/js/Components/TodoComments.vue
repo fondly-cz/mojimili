@@ -68,15 +68,61 @@
             <FilePicker v-model="form.files" />
             <div class="flex flex-wrap items-center gap-3">
                 <button
+                    v-if="!isCustomer"
+                    type="button"
+                    @click="moreOpen = !moreOpen"
+                    class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-colors"
+                    :class="moreOpen || extrasActive ? 'text-brand-primary-from' : 'text-gray-400 hover:text-brand-primary-from'"
+                    :aria-expanded="moreOpen"
+                >
+                    Více
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 transition-transform" :class="{ 'rotate-90': moreOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+                <span v-if="form.progress" class="text-[10px] font-bold text-gray-400">{{ form.progress.percentage }} %</span>
+                <button
                     type="submit"
                     :disabled="form.processing"
-                    class="brand-gradient px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                    class="ml-auto brand-gradient px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
                 >
                     Odeslat
                 </button>
-                <span v-if="form.progress" class="text-[10px] font-bold text-gray-400">{{ form.progress.percentage }} %</span>
             </div>
-            <p v-if="firstError(form)" class="text-xs text-red-500 font-bold">{{ firstError(form) }}</p>
+
+            <div v-if="moreOpen && !isCustomer" class="space-y-4 rounded-2xl border border-gray-100 bg-gray-50/50 p-4">
+                <div class="space-y-2">
+                    <label class="flex cursor-pointer items-center gap-3">
+                        <input v-model="extras.changeAssignee" type="checkbox" class="peer sr-only">
+                        <span class="relative h-5 w-9 shrink-0 rounded-full bg-gray-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-brand-primary-from peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-primary-from"></span>
+                        <span class="text-xs font-bold text-gray-700">Změnit řešitele</span>
+                    </label>
+                    <ChoicesSelect
+                        v-if="extras.changeAssignee"
+                        v-model="extras.assignee"
+                        :options="assigneeOptions"
+                    />
+                </div>
+
+                <div class="space-y-2">
+                    <label class="flex cursor-pointer items-center gap-3">
+                        <input v-model="extras.reportTime" type="checkbox" class="peer sr-only">
+                        <span class="relative h-5 w-9 shrink-0 rounded-full bg-gray-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-brand-primary-from peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-primary-from"></span>
+                        <span class="text-xs font-bold text-gray-700">Vykázat čas</span>
+                    </label>
+                    <div v-if="extras.reportTime">
+                        <input
+                            v-model="extras.duration"
+                            type="text"
+                            placeholder="1h 30m"
+                            class="block w-full max-w-[12rem] rounded-xl border-gray-100 bg-white px-3 py-2 text-xs font-semibold text-gray-700 focus:border-brand-primary-from focus:ring-brand-primary-from"
+                        >
+                        <p class="mt-1 text-[10px] font-bold text-gray-400">{{ DURATION_HINT }} Vykáže se dnes na vás.</p>
+                    </div>
+                </div>
+            </div>
+
+            <p v-if="extras.error || firstError(form)" class="text-xs text-red-500 font-bold">{{ extras.error || firstError(form) }}</p>
         </form>
 
         <ConfirmModal
@@ -90,13 +136,15 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import AttachmentThumbs from './AttachmentThumbs.vue'
+import ChoicesSelect from './ChoicesSelect.vue'
 import ConfirmModal from './ConfirmModal.vue'
 import FilePicker from './FilePicker.vue'
 import RichEditor from './RichEditor.vue'
 import UserAvatar from './UserAvatar.vue'
+import { DURATION_HINT, parseDuration } from '../utils/billing'
 import { onInlineImageClick } from '../utils/files'
 
 const props = defineProps({
@@ -154,13 +202,53 @@ const editorKey = ref(0)
 
 const form = useForm({ body: '', files: [] })
 
+const isCustomer = computed(() => currentUser.value?.role === 'customer')
+
+// "Více": optional extras sent together with the post – hand the todo over and/or report time.
+const moreOpen = ref(false)
+const extras = reactive({ changeAssignee: false, assignee: props.todo.assigned_user_id || '', reportTime: false, duration: '', error: '' })
+const extrasActive = computed(() => extras.changeAssignee || extras.reportTime)
+
+const assigneeOptions = computed(() => [
+    { value: '', label: 'Nepřiřazeno' },
+    ...(props.mentionUsers || []).map(user => ({ value: user.id, label: user.name, avatar: user.avatar ?? null })),
+])
+
+const resetExtras = () => {
+    extras.changeAssignee = false
+    extras.assignee = props.todo.assigned_user_id || ''
+    extras.reportTime = false
+    extras.duration = ''
+    extras.error = ''
+}
+
 const submit = () => {
-    form.post(`/todos/${props.todo.id}/comments`, {
+    extras.error = ''
+    const extraData = {}
+
+    if (extras.reportTime) {
+        const minutes = parseDuration(extras.duration)
+
+        if (!minutes || minutes > 1440) {
+            extras.error = DURATION_HINT
+            return
+        }
+
+        extraData.report_minutes = minutes
+    }
+
+    if (extras.changeAssignee) {
+        extraData.assigned_user_id = extras.assignee || ''
+    }
+
+    form.transform(data => ({ ...data, ...extraData })).post(`/todos/${props.todo.id}/comments`, {
         preserveScroll: true,
         forceFormData: true,
         onSuccess: () => {
             form.reset()
             form.clearErrors()
+            resetExtras()
+            moreOpen.value = false
             editorKey.value++
         },
     })
